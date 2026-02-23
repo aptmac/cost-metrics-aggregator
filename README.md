@@ -14,8 +14,8 @@ The Cost Metrics Aggregator is a Go-based application for collecting and aggrega
 ## Prerequisites
 - **OpenShift Deployment**:
   - OpenShift cluster (v4.x) with admin access.
-  - Quay.io account with permissions to push to `quay.io/chambridge/cost-metrics-aggregator`.
-  - GitHub repository (`chambridge/cost-metrics-aggregator`) with push access.
+  - Quay.io account with permissions to push to `quay.io/almacdon/cost-metrics-aggregator`.
+  - GitHub repository (`aptmac/cost-metrics-aggregator`) with push access.
   - `kubectl` installed locally.
 - **Local Development**:
   - Go 1.20 or higher.
@@ -67,7 +67,7 @@ All `id` columns use UUIDs (via `gen_random_uuid()`). The `node_metrics` and `po
 ## Local Development
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/chambridge/cost-metrics-aggregator.git
+git clone https://github.com/aptmac/cost-metrics-aggregator.git
 cd cost-metrics-aggregator
 ```
 
@@ -115,7 +115,7 @@ Upload the generated test file to the application:
 make upload-test
 ```
 
-The generate-test-upload target creates a test_upload.tar.gz file with a manifest and two CSV files, each containing hourly metrics data compatible with the application's ingestion endpoint. The upload-test target sends this file to http://localhost:8080/api/ingres/v1/upload. Ensure the application is running before uploading.
+The generate-test-upload target creates a test_upload.tar.gz file with a manifest and two CSV files, each containing hourly metrics data compatible with the application's ingestion endpoint. The upload-test target sends this file to http://localhost:8080/api/ingress/v1/upload. Ensure the application is running before uploading.
 
 > 💡 Tip:
 > Substitute `start_date` and `end_date` with the current date
@@ -123,12 +123,12 @@ The generate-test-upload target creates a test_upload.tar.gz file with a manifes
 
 Query node metrics:
 ```bash
-curl "http://localhost:8080/api/metrics/v1/nodes?start_date=2025-05-17&end_date=2025-05-17"
+curl "http://localhost:8080/api/metrics/v1/nodes?start_date=2025-05-17&end_date=2027-05-17"
 ```
 
 Query pod metrics:
 ```bash
-curl "http://localhost:8080/api/metrics/v1/pods?start_date=2025-05-17&end_date=2025-05-17&namespace=test"
+curl "http://localhost:8080/api/metrics/v1/pods?start_date=2025-05-17&end_date=2027-05-17&namespace=test"
 ```
 
 ### 6. Access the Database
@@ -157,8 +157,8 @@ make compose-down
 ### 1. Build and Push Image
 ```bash
 make build
-podman build -t quay.io/chambridge/cost-metrics-aggregator:latest .
-podman push quay.io/chambridge/cost-metrics-aggregator:latest
+podman build -t quay.io/almacdon/cost-metrics-aggregator:latest .
+podman push quay.io/almacdon/cost-metrics-aggregator:latest
 ```
 
 ### 2. Deploy on OpenShift
@@ -220,7 +220,7 @@ podman push quay.io/chambridge/cost-metrics-aggregator:latest
 - **Schedule**: Both CronJobs run monthly on the 1st at midnight (`0 0 1 * *`).
 
 ## Endpoints
-- **POST /api/ingres/v1/upload**: Uploads a tar.gz file containing `manifest.json` and CSV files (e.g., `node.csv`) for metric ingestion.
+- **POST /api/ingress/v1/upload**: Uploads a tar.gz file containing `manifest.json` and CSV files (e.g., `node.csv`) for metric ingestion.
 - **GET /api/metrics/v1/nodes**: Queries node metrics (e.g., core count, total hours) with optional filters (`start_date`, `end_date`, `cluster_id`, `cluster_name`, `node_type`).
 - **GET /api/metrics/v1/pods**: Queries pod metrics (e.g., max cores used, effective core seconds, total hours) with optional filters (`start_date`, `end_date`, `cluster_id`, `namespace`, `component`).
 
@@ -241,7 +241,7 @@ podman push quay.io/chambridge/cost-metrics-aggregator:latest
     ```
 
 ## Contributing
-- Submit pull requests to `chambridge/cost-metrics-aggregator`.
+- Submit pull requests to `almacdon/cost-metrics-aggregator`.
 - Update `internal/db/migrations/` for schema changes and `internal/processor/` for metric processing logic.
 - Add tests in relevant packages (e.g., `internal/processor`) for node and pod metric aggregation.
 - Test locally with `make compose-up` and `make test` before pushing to Quay.io.

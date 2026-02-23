@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Containerfile
-    image: quay.io/chambridge/cost-metrics-aggregator
+    image: quay.io/almacdon/cost-metrics-aggregator
     container_name: aggregator
     ports:
       - "8080:8080"

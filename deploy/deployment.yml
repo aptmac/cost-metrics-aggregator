@@ -17,12 +17,12 @@ spec:
     spec:
       initContainers:
       - name: init-db
-        image: quay.io/chambrid/cost-metrics-aggregator:latest
+        image: quay.io/almacdon/cost-metrics-aggregator:latest
         command: ["/bin/sh", "-c"]
         args:
         - |
           migrate -path /app/migrations -database "$DATABASE_URL" up &&
-          /app/scripts/create_partitions --init
+          /app/create --init
         env:
         - name: DATABASE_URL
           valueFrom:
@@ -38,7 +38,7 @@ spec:
             memory: "256Mi"
       containers:
       - name: cost-metrics-aggregator
-        image: quay.io/chambrid/cost-metrics-aggregator:latest
+        image: quay.io/almacdon/cost-metrics-aggregator:latest
         env:
         - name: DATABASE_URL
           valueFrom:

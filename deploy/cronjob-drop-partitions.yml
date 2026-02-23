@@ -11,7 +11,7 @@ spec:
         spec:
           containers:
           - name: drop-partitions
-            image: quay.io/chambridge/cost-metrics-aggregator:latest
+            image: quay.io/almacdon/cost-metrics-aggregator:latest
             command: ["/app/drop"]
             env:
             - name: DATABASE_URL

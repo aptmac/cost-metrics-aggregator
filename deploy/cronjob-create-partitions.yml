@@ -11,7 +11,7 @@ spec:
         spec:
           containers:
           - name: create-partitions
-            image: quay.io/chambridge/cost-metrics-aggregator:latest
+            image: quay.io/almacdon/cost-metrics-aggregator:latest
             command: ["/app/create"]
             env:
             - name: DATABASE_URL

@@ -1,4 +1,4 @@
-module github.com/chambridge/cost-metrics-aggregator
+module github.com/aptmac/cost-metrics-aggregator
 
 go 1.21
 

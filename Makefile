@@ -16,7 +16,7 @@ POSTGRES_PORT := 5432
 CONTAINER_RUNTIME ?= podman
 
 # Default image name
-IMAGE_NAME ?= quay.io/chambridge/cost-metrics-aggregator:latest
+IMAGE_NAME ?= quay.io/almacdon/cost-metrics-aggregator:latest
 
 # Check if Containerfile exists
 CONTAINERFILE := Containerfile

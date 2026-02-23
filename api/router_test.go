@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"github.com/chambridge/cost-metrics-aggregator/internal/config"
+	"github.com/aptmac/cost-metrics-aggregator/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"

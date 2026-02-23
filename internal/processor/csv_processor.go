@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chambridge/cost-metrics-aggregator/internal/db"
+	"github.com/aptmac/cost-metrics-aggregator/internal/db"
 	"github.com/google/uuid"
 )
 

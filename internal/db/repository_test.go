@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chambridge/cost-metrics-aggregator/internal/db/testutils"
+	"github.com/aptmac/cost-metrics-aggregator/internal/db/testutils"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

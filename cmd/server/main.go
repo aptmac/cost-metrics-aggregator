@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"github.com/chambridge/cost-metrics-aggregator/api"
-	"github.com/chambridge/cost-metrics-aggregator/internal/config"
+	"github.com/aptmac/cost-metrics-aggregator/api"
+	"github.com/aptmac/cost-metrics-aggregator/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"os"

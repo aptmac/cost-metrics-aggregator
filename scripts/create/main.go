@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/chambridge/cost-metrics-aggregator/internal/config"
+	"github.com/aptmac/cost-metrics-aggregator/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

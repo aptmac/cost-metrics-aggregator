@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/chambridge/cost-metrics-aggregator/internal/config"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"time"
+
+	"github.com/aptmac/cost-metrics-aggregator/internal/config"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {

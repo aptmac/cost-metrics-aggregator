@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/chambridge/cost-metrics-aggregator/internal/db"
-	"github.com/chambridge/cost-metrics-aggregator/internal/processor/testutils"
+	"github.com/aptmac/cost-metrics-aggregator/internal/db"
+	"github.com/aptmac/cost-metrics-aggregator/internal/processor/testutils"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

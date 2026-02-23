@@ -12,7 +12,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/chambridge/cost-metrics-aggregator/internal/db"
+	"github.com/aptmac/cost-metrics-aggregator/internal/db"
 	"github.com/google/uuid"
 )
 
