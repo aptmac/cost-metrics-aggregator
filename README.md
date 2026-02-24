@@ -215,6 +215,24 @@ podman push quay.io/almacdon/cost-metrics-aggregator:latest
    kubectl logs <job-pod-name> -n cost-metrics
    ```
 
+## Queries
+
+You can use `kubectl` to query the database directly:
+```bash
+Template:
+
+kubectl exec -n cost-metrics \
+  $(kubectl get pod -n cost-metrics -l app=postgres -o jsonpath='{.items[0].metadata.name}') -- \
+  psql -U costmetrics -d costmetrics -c "YOUR SQL QUERY HERE"
+
+Example (count all records):
+
+kubectl exec -n cost-metrics \
+  $(kubectl get pod -n cost-metrics -l app=postgres -o jsonpath='{.items[0].metadata.name}') -- \
+  psql -U costmetrics -d costmetrics -c \
+  "SELECT COUNT(*) FROM node_metrics; SELECT COUNT(*) FROM pod_metrics;"
+```
+
 ## Partition Management
 - **Creation**: The `create_partitions.go` script (run by an initContainer and `cronjob-create-partitions`) creates `node_metrics` and `pod_metrics` partitions for the previous and next 90 days.
 - **Deletion**: The `drop_partitions.go` script (run by `cronjob-drop-partitions`) drops partitions older than 90 days.
