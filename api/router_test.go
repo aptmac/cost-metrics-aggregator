@@ -34,6 +34,12 @@ func TestSetupRouter(t *testing.T) {
 		{method: "POST", path: "/api/ingress/v1/upload"},
 		{method: "GET", path: "/api/metrics/v1/nodes"},
 		{method: "GET", path: "/api/metrics/v1/pods"},
+		{method: "GET", path: "/api/sources/v1.0/applications"},
+		{method: "GET", path: "/api/sources/v1.0/application_types"},
+		{method: "GET", path: "/api/sources/v1.0/sources"},
+		{method: "GET", path: "/api/sources/v1.0/source_types"},
+		{method: "POST", path: "/api/sources/v1.0/applications"},
+		{method: "POST", path: "/api/sources/v1.0/sources"},
 	}
 
 	// Verify all expected routes exist
@@ -62,7 +68,7 @@ func TestSetupRouter(t *testing.T) {
 	}
 
 	// Verify route count
-	assert.Equal(t, 3, len(routes), "Router should have exactly 3 routes")
+	assert.Equal(t, 9, len(routes), "Router should have exactly 9 routes")
 }
 
 func TestSetupRouter_GroupPrefix(t *testing.T) {
@@ -79,7 +85,11 @@ func TestSetupRouter_GroupPrefix(t *testing.T) {
 	for _, route := range routes {
 		assert.True(t, route.Path == "/api/ingress/v1/upload" ||
 			route.Path == "/api/metrics/v1/nodes" ||
-			route.Path == "/api/metrics/v1/pods",
+			route.Path == "/api/metrics/v1/pods" ||
+			route.Path == "/api/sources/v1.0/applications" ||
+			route.Path == "/api/sources/v1.0/application_types" ||
+			route.Path == "/api/sources/v1.0/sources" ||
+			route.Path == "/api/sources/v1.0/source_types",
 			"Route %s should be under /api group", route.Path)
 	}
 }
