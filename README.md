@@ -41,6 +41,7 @@ The Cost Metrics Aggregator is a Go-based application for collecting and aggrega
 ├── scripts/                   # Go scripts for partition management
 │   ├── create_partitions.go
 │   └── drop_partitions.go
+├── examples/                  # Example configurations, commands, etc.
 └── deploy/                    # OpenShift manifests
     ├── namespace.yml
     ├── cost-metrics-db-secret.yml
