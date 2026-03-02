@@ -42,6 +42,7 @@ The Cost Metrics Aggregator is a Go-based application for collecting and aggrega
 │   ├── create_partitions.go
 │   └── drop_partitions.go
 ├── examples/                  # Example configurations, commands, etc.
+├── grafana/                   # Grafana dashboard for monitoring PromQL
 └── deploy/                    # OpenShift manifests
     ├── namespace.yml
     ├── cost-metrics-db-secret.yml
