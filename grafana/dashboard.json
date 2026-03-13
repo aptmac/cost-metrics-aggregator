@@ -15,190 +15,12 @@
       }
     ]
   },
-  "description": "Red Hat products have labels such as `rht.prod_name`, `rht.comp`, and others, that allow for them to be identified by monitoring applications. The queries of this Grafana Dashboard look for pods with these labels, and will display the CPU usage of these pods along with an estimation of cost (in USD).",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": 0,
   "links": [],
   "panels": [
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "Calculated using $100 per Core per Hour.\n\nNote: the cost is calculated using data from `container_cpu_usage_seconds_total`, which resets to 0 when a cluster is stopped and started. As a result, the value estimated here applies only to the current instance of the cluster. ",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 2,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "currencyUSD"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 0,
-        "y": 0
-      },
-      "id": 6,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "sum(\n  container_cpu_usage_seconds_total{\n    container!=\"\",\n    container!=\"POD\"\n  }\n  * on(namespace, pod) group_left()\n  kube_pod_labels{label_rht_comp!=\"\"}\n) / 3600 * 100",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Estimated Total Cost",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBA87B4870F3F41AD"
-      },
-      "description": "This visualization estimates cost assuming $100 per CPU-hour.\n\nThe idea is to get the CPU usage in seconds for the container, and then aggregate the pods within that container to get a total CPU-seconds count for the pod.\n\nThen turn that into CPU-hours by dividing by 3600, and then multiplying by 100 to calculate based on $100 per CPU-hour.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "currencyUSD"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 18,
-        "x": 6,
-        "y": 0
-      },
-      "id": 7,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "sum by (pod, namespace, label_rht_comp) (\n  container_cpu_usage_seconds_total{\n    container!=\"\",\n    container!=\"POD\"\n  }\n  * on(namespace, pod) group_left(label_rht_comp)\n  kube_pod_labels{label_rht_comp!=\"\"}\n) / 3600 * 100",
-          "interval": "",
-          "legendFormat": "{{label_rht_comp}}: {{namespace}}/{{pod}}",
-          "range": true,
-          "refId": "Cost per Pod"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBA87B4870F3F41AD"
-          },
-          "editorMode": "code",
-          "expr": "sum(\n  container_cpu_usage_seconds_total{\n    container!=\"\",\n    container!=\"POD\"\n  }\n  * on(namespace, pod) group_left()\n  kube_pod_labels{label_rht_comp!=\"\"}\n) / 3600 * 100",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "Estimated Total Cost",
-          "range": true,
-          "refId": "Total Cost"
-        }
-      ],
-      "title": "Estimated Cost per Pod",
-      "type": "timeseries"
-    },
     {
       "datasource": {
         "type": "prometheus",
@@ -261,10 +83,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 9,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 0
       },
       "id": 8,
       "options": {
@@ -358,7 +180,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 16
+        "y": 9
       },
       "id": 3,
       "options": {
@@ -419,7 +241,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Red Hat Product CPU usage and Cost Estimation",
+  "title": "Red Hat Product Resource Monitoring",
   "uid": "adkrjq8",
-  "version": 1
+  "version": 4
 }

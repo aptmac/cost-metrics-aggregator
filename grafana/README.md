@@ -24,10 +24,5 @@ In a web-browser, navigate to [localhost:3000](http://localhost:3000) and login 
 
 In the top-right corner, click on the "+" symbol, and select `Import Dashboard`. Upload the contents of `dashboard.json` by either dragging and dropping the file into the browser, or by copy-pasting the contents into the text field.
 
-## Example:
-
-![grafana-screenshot](./screenshot-grafana.png)
-
-
 ### Note:
 I'm using currently `container_cpu_usage_seconds_total` to track pod CPU usage in Grafana, which has an unfortunate side-effect when a cluster is restarted. On restart the value gets reset to 0, so previous data captured is not included against the estimated total cost calculation. So for that one chart in-particular, it will only display the running cost for the cluster for its current run.

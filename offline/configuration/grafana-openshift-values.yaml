@@ -1,0 +1,40 @@
+# Use internal registry image for offline installation
+image:
+  registry: {{GRAFANA_REGISTRY}}
+  repository: {{GRAFANA_REPOSITORY}}
+  tag: {{GRAFANA_TAG}}
+  pullPolicy: IfNotPresent
+
+# Image pull secrets for internal registry
+imagePullSecrets:
+  - name: grafana-registry-pull-secret
+
+# OpenShift-compatible settings
+securityContext:
+  runAsNonRoot: true
+  runAsUser: null
+  fsGroup: null
+  
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: null
+  fsGroup: null
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Use OpenShift route instead of ingress
+service:
+  type: ClusterIP
+
+# Disable persistence for demo
+persistence:
+  enabled: false
+
+# Made with Bob 1.0.0

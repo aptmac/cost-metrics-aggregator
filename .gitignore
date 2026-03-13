@@ -15,7 +15,7 @@
 *.out
 
 # Dependency directories (remove the comment below to include it)
-# vendor/
+vendor/
 
 # Go workspace file
 go.work
@@ -32,3 +32,6 @@ db.env
 
 test_upload
 test_upload.tar.gz
+
+offline/offline-bundle
+examples/demo-apps/demo-apps-bundle
