@@ -1,0 +1,46 @@
+core:
+  image:
+    repository: {{CRYOSTAT_CORE_IMAGE}}
+    tag: "4.1.1"
+    pullPolicy: IfNotPresent
+
+grafana:
+  image:
+    repository: {{CRYOSTAT_GRAFANA_IMAGE}}
+    tag: "4.1.1"
+    pullPolicy: IfNotPresent
+
+reports:
+  image:
+    repository: {{CRYOSTAT_REPORTS_IMAGE}}
+    tag: "4.1.1"
+    pullPolicy: IfNotPresent
+
+db:
+  image:
+    repository: {{CRYOSTAT_DB_IMAGE}}
+    tag: "4.1.1"
+    pullPolicy: IfNotPresent
+
+storage:
+  image:
+    repository: {{CRYOSTAT_STORAGE_IMAGE}}
+    tag: "4.1.1"
+    pullPolicy: IfNotPresent
+
+datasource:
+  image:
+    repository: {{JFR_DATASOURCE_IMAGE}}
+    tag: "4.1.1"
+    pullPolicy: IfNotPresent
+
+oauth2Proxy:
+  image:
+    repository: {{OAUTH2_PROXY_IMAGE}}
+    tag: "v7.14.3"
+    pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: cryostat-registry-pull-secret
+
+# Made with Bob 1.0.0

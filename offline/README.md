@@ -1,5 +1,10 @@
 # Offline Demonstration
 
+Log into Red Hat Registry:
+```
+podman login registry.redhat.io
+```
+
 Setup internal registry:
 ```bash
 export INTERNAL_REGISTRY=$(oc get route default-route -n openshift-image-registry -o jsonpath='{.spec.host}')
@@ -10,6 +15,15 @@ export INTERNAL_REGISTRY_PASSWORD=$(oc whoami -t)
 bash: podman login ${INTERNAL_REGISTRY} -u ${INTERNAL_REGISTRY_USER} -p ${INTERNAL_REGISTRY_PASSWORD} --tls-verify=false
 
 fish: podman login {$INTERNAL_REGISTRY} -u {$INTERNAL_REGISTRY_USER} -p {$INTERNAL_REGISTRY_PASSWORD} --tls-verify=false
+```
+
+Add labels to your Deployments and Pods:
+```bash
+# Pod (will not persist a re-spin):
+oc label pod <pod-name> rht.comp=<value>
+
+# Deployment (will require a re-deployment to take effect):
+oc label deployment <deployment-name> rht.comp=<value>
 ```
 
 Using CMA & Grafana:

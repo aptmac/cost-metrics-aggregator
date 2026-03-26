@@ -1,0 +1,17 @@
+image:
+  name: {{EAP_IMAGE}}
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: eap74-registry-pull-secret
+
+build:
+  enabled: false
+  
+replicas: 1
+
+route:
+  enabled: true
+
+# Made with Bob 1.0.0

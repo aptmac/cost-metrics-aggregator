@@ -1,5 +1,9 @@
 # bash prepare-offline.sh
 
+# log into Red Hat Registry
+
+podman login registry.redhat.io
+
 # go offline
 
 export INTERNAL_REGISTRY=$(oc get route default-route -n openshift-image-registry -o jsonpath='{.spec.host}')

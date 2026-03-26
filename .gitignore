@@ -34,4 +34,4 @@ test_upload
 test_upload.tar.gz
 
 offline/offline-bundle
-examples/demo-apps/demo-apps-bundle
+examples/offline-demo-apps/demo-apps-bundle/*
