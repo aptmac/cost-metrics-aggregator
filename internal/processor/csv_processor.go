@@ -39,9 +39,12 @@ func ProcessCSV(ctx context.Context, repo *db.Repository, reader *csv.Reader, cl
 		return fmt.Errorf("failed to read CSV records: %w", err)
 	}
 
-	// Check if CSV is empty
-	if len(records) < 1 {
-		return fmt.Errorf("empty CSV file")
+	// Check if CSV is empty or has no data rows
+	if len(records) == 0 {
+		return fmt.Errorf("empty CSV file: no records found")
+	}
+	if len(records) < 2 {
+		return fmt.Errorf("CSV file has no data rows: only headers present")
 	}
 
 	// Map header indices
@@ -85,7 +88,8 @@ func ProcessCSV(ctx context.Context, repo *db.Repository, reader *csv.Reader, cl
 		nodeCap   float64
 		coreCount int
 	}
-	podMetrics := make(map[uuid.UUID]map[time.Time]podMetric)
+	// Track pod metrics by hour (podID -> date -> hour -> metric)
+	podMetrics := make(map[uuid.UUID]map[string]map[time.Time]podMetric)
 
 	// Process each record
 	for i, record := range records[1:] {
@@ -231,24 +235,21 @@ func ProcessCSV(ctx context.Context, repo *db.Repository, reader *csv.Reader, cl
 			continue
 		}
 
-		// Track pod metrics for daily summary
+		// Track pod metrics for daily summary by hour
+		podDateStr := intervalStart.Truncate(24 * time.Hour).Format("2006-01-02")
+		podHour := intervalStart.Truncate(time.Hour)
 		if _, ok := podMetrics[podID]; !ok {
-			podMetrics[podID] = make(map[time.Time]podMetric)
+			podMetrics[podID] = make(map[string]map[time.Time]podMetric)
 		}
-		if metric, ok := podMetrics[podID][intervalStart]; ok {
-			// Aggregate usage and request, keep latest node capacity
-			metric.usage += podUsage
-			metric.request += podRequest
-			metric.nodeCap = nodeCapacityCPUCoreSeconds
-			metric.coreCount = int(capacityCPU)
-			podMetrics[podID][intervalStart] = metric
-		} else {
-			podMetrics[podID][intervalStart] = podMetric{
-				usage:     podUsage,
-				request:   podRequest,
-				nodeCap:   nodeCapacityCPUCoreSeconds,
-				coreCount: int(capacityCPU),
-			}
+		if _, ok := podMetrics[podID][podDateStr]; !ok {
+			podMetrics[podID][podDateStr] = make(map[time.Time]podMetric)
+		}
+		// Store the latest values for this hour (overwrite if multiple records in same hour)
+		podMetrics[podID][podDateStr][podHour] = podMetric{
+			usage:     podUsage,
+			request:   podRequest,
+			nodeCap:   nodeCapacityCPUCoreSeconds,
+			coreCount: int(capacityCPU),
 		}
 	}
 
@@ -266,19 +267,42 @@ func ProcessCSV(ctx context.Context, repo *db.Repository, reader *csv.Reader, cl
 	}
 
 	// Update pod daily summaries after processing all records
-	for podID, timestamps := range podMetrics {
-		for ts, metric := range timestamps {
-			podEffectiveCoreSeconds := metric.usage
-			if metric.request > metric.usage {
-				podEffectiveCoreSeconds = metric.request
-			}
-			podEffectiveCoreUsage := 0.0
-			if metric.nodeCap > 0 {
-				podEffectiveCoreUsage = podEffectiveCoreSeconds / metric.nodeCap
-			}
-			err := repo.UpdatePodDailySummary(podID, ts, podEffectiveCoreSeconds, podEffectiveCoreUsage)
+	for podID, dates := range podMetrics {
+		for dateStr, hours := range dates {
+			// Parse the date string back to time.Time
+			date, err := time.Parse("2006-01-02", dateStr)
 			if err != nil {
-				log.Printf("Failed to update pod_daily_summary for pod %s at %s: %v", podID, ts, err)
+				log.Printf("Failed to parse date %s: %v", dateStr, err)
+				continue
+			}
+
+			// Count unique hours for this pod on this date
+			hourCount := len(hours)
+
+			// Aggregate metrics across all hours for this date
+			var totalEffectiveCoreSeconds float64
+			var maxCoreUsage float64
+
+			for _, metric := range hours {
+				podEffectiveCoreSeconds := metric.usage
+				if metric.request > metric.usage {
+					podEffectiveCoreSeconds = metric.request
+				}
+				totalEffectiveCoreSeconds += podEffectiveCoreSeconds
+
+				podEffectiveCoreUsage := 0.0
+				if metric.nodeCap > 0 {
+					podEffectiveCoreUsage = podEffectiveCoreSeconds / metric.nodeCap
+				}
+				if podEffectiveCoreUsage > maxCoreUsage {
+					maxCoreUsage = podEffectiveCoreUsage
+				}
+			}
+
+			// Update summary with the count of unique hours
+			err = repo.UpdatePodDailySummaryWithHours(podID, date, maxCoreUsage, totalEffectiveCoreSeconds, hourCount)
+			if err != nil {
+				log.Printf("Failed to update pod_daily_summary for pod %s on %s: %v", podID, dateStr, err)
 				continue
 			}
 		}

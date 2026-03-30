@@ -97,13 +97,13 @@ func (r *Repository) UpsertPod(clusterID, nodeID uuid.UUID, name, namespace, com
 func (r *Repository) InsertPodMetric(podID uuid.UUID, timestamp time.Time, podUsage, podRequest, nodeCapacityCPUCoreSeconds float64, nodeCapacityCPUCores int) error {
 	_, err := r.db.Exec(context.Background(),
 		`INSERT INTO pod_metrics (
-			pod_id, timestamp, pod_usage_cpu_core_seconds, 
-			pod_request_cpu_core_seconds, node_capacity_cpu_core_seconds, 
+			pod_id, timestamp, pod_usage_cpu_core_seconds,
+			pod_request_cpu_core_seconds, node_capacity_cpu_core_seconds,
 			node_capacity_cpu_cores
 		) VALUES ($1, $2, $3, $4, $5, $6)
 		 ON CONFLICT (pod_id, timestamp) DO UPDATE
-		 SET pod_usage_cpu_core_seconds = pod_metrics.pod_usage_cpu_core_seconds + EXCLUDED.pod_usage_cpu_core_seconds,
-		     pod_request_cpu_core_seconds = pod_metrics.pod_request_cpu_core_seconds + EXCLUDED.pod_request_cpu_core_seconds,
+		 SET pod_usage_cpu_core_seconds = EXCLUDED.pod_usage_cpu_core_seconds,
+		     pod_request_cpu_core_seconds = EXCLUDED.pod_request_cpu_core_seconds,
 		     node_capacity_cpu_core_seconds = EXCLUDED.node_capacity_cpu_core_seconds,
 		     node_capacity_cpu_cores = EXCLUDED.node_capacity_cpu_cores`,
 		podID, timestamp, podUsage, podRequest, nodeCapacityCPUCoreSeconds, nodeCapacityCPUCores)
@@ -121,6 +121,20 @@ func (r *Repository) UpdatePodDailySummary(podID uuid.UUID, timestamp time.Time,
 		     total_pod_effective_core_seconds = pod_daily_summary.total_pod_effective_core_seconds + EXCLUDED.total_pod_effective_core_seconds,
 		     total_hours = pod_daily_summary.total_hours + 1`,
 		podID, date, podEffectiveCoreUsage, podEffectiveCoreSeconds)
+	return err
+}
+
+func (r *Repository) UpdatePodDailySummaryWithHours(podID uuid.UUID, date time.Time, maxCoresUsed, totalPodEffectiveCoreSeconds float64, hourCount int) error {
+	dateOnly := date.Truncate(24 * time.Hour)
+	_, err := r.db.Exec(context.Background(),
+		`INSERT INTO pod_daily_summary (
+			pod_id, date, max_cores_used, total_pod_effective_core_seconds, total_hours
+		) VALUES ($1, $2, $3, $4, $5)
+		 ON CONFLICT (pod_id, date) DO UPDATE
+		 SET max_cores_used = GREATEST(pod_daily_summary.max_cores_used, EXCLUDED.max_cores_used),
+		     total_pod_effective_core_seconds = pod_daily_summary.total_pod_effective_core_seconds + EXCLUDED.total_pod_effective_core_seconds,
+		     total_hours = pod_daily_summary.total_hours + EXCLUDED.total_hours`,
+		podID, dateOnly, maxCoresUsed, totalPodEffectiveCoreSeconds, hourCount)
 	return err
 }
 

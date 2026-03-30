@@ -1,6 +1,6 @@
 package handlers
 
-// AI-ASSISTED: Bob/2026-02-24
+// AI-ASSISTED: Bob 1.0.0
 // This file contains mock implementations of the Sources API endpoints required
 // for compatibility with the Cost Management Operator.
 //
@@ -10,6 +10,7 @@ package handlers
 // /api/sources/v1.0/source_types [GET]
 import (
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -47,7 +48,7 @@ func SourcesHandler() gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{
 			"data": []gin.H{},
 			"meta": gin.H{
-				"count": 1,
+				"count": 0,
 			},
 		})
 	}
@@ -76,7 +77,7 @@ func CreateApplicationHandler() gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		
+
 		c.JSON(http.StatusCreated, gin.H{
 			"id":                  "mock-app-id",
 			"source_id":           body["source_id"],
@@ -92,7 +93,7 @@ func CreateSourceHandler() gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		
+
 		c.JSON(http.StatusCreated, gin.H{
 			"id":             "mock-source-id",
 			"name":           body["name"],
