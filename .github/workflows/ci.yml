@@ -1,0 +1,35 @@
+name: ci
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+      - name: Install podman-compose
+        run: sudo apt-get install -y podman-compose
+      - name: Build
+        run: make build
+      - name: Create db.env file
+        run: |
+          cat > db.env << EOF
+          POSTGRES_HOST=aggregator-db
+          POSTGRES_PORT=5432
+          POSTGRES_USER=costmetrics
+          POSTGRES_PASSWORD=costmetrics
+          POSTGRES_DB=costmetrics
+          EOF
+      - name: Setup test environment
+        run: make compose-up
+      - name: Run tests
+        run: make test
+      - name: Teardown test environment
+        run: make compose-down
