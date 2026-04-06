@@ -104,6 +104,15 @@ func SetupTestDB(t *testing.T) (*pgxpool.Pool, func() pgx.Tx) {
 		time.Sleep(50 * time.Millisecond)
 	}
 
+	// Always ensure test partitions exist (in case DB was initialized by migrations without partitions)
+	_, err = pool.Exec(context.Background(), `
+		CREATE TABLE IF NOT EXISTS node_metrics_202505 PARTITION OF node_metrics
+		FOR VALUES FROM ('2025-05-01') TO ('2025-06-01');
+		CREATE TABLE IF NOT EXISTS pod_metrics_202505 PARTITION OF pod_metrics
+		FOR VALUES FROM ('2025-05-01') TO ('2025-06-01')
+	`)
+	require.NoError(t, err)
+
 	// Insert test cluster for each test
 	clusterID, _ := uuid.Parse("10f5a0f9-223a-41c1-8456-9a3eb0323a99")
 	_, err = pool.Exec(context.Background(), `
