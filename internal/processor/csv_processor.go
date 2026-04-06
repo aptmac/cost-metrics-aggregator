@@ -255,13 +255,23 @@ func ProcessCSV(ctx context.Context, repo *db.Repository, reader *csv.Reader, cl
 
 	// Update node daily summaries
 	for nodeID, dates := range nodeMetrics {
-		for _, hours := range dates {
+		for dateStr, hours := range dates {
+			// Count unique hours for this node on this date
+			hourCount := len(hours)
+
+			// Find the max core count across all hours for this date
+			maxCoreCount := 0
 			for _, metric := range hours {
-				err := repo.UpdateNodeDailySummary(nodeID, metric.timestamp, metric.maxCoreCount)
-				if err != nil {
-					log.Printf("Failed to update node_daily_summary for node %s at %s with core_count %d: %v", nodeID, metric.timestamp, metric.maxCoreCount, err)
-					continue
+				if metric.maxCoreCount > maxCoreCount {
+					maxCoreCount = metric.maxCoreCount
 				}
+			}
+
+			// Update summary with the count of unique hours
+			err := repo.UpdateNodeDailySummary(nodeID, dateStr, maxCoreCount, hourCount)
+			if err != nil {
+				log.Printf("Failed to update node_daily_summary for node %s on %s with core_count %d: %v", nodeID, dateStr, maxCoreCount, err)
+				continue
 			}
 		}
 	}
@@ -269,13 +279,6 @@ func ProcessCSV(ctx context.Context, repo *db.Repository, reader *csv.Reader, cl
 	// Update pod daily summaries after processing all records
 	for podID, dates := range podMetrics {
 		for dateStr, hours := range dates {
-			// Parse the date string back to time.Time
-			date, err := time.Parse("2006-01-02", dateStr)
-			if err != nil {
-				log.Printf("Failed to parse date %s: %v", dateStr, err)
-				continue
-			}
-
 			// Count unique hours for this pod on this date
 			hourCount := len(hours)
 
@@ -290,17 +293,17 @@ func ProcessCSV(ctx context.Context, repo *db.Repository, reader *csv.Reader, cl
 				}
 				totalEffectiveCoreSeconds += podEffectiveCoreSeconds
 
-				podEffectiveCoreUsage := 0.0
-				if metric.nodeCap > 0 {
-					podEffectiveCoreUsage = podEffectiveCoreSeconds / metric.nodeCap
-				}
-				if podEffectiveCoreUsage > maxCoreUsage {
-					maxCoreUsage = podEffectiveCoreUsage
+				// Convert core-seconds to average cores for this hour
+				// pod_usage_cpu_core_seconds is the total CPU consumed in the hour
+				// Dividing by 3600 seconds gives average cores during that hour
+				podCoresUsed := podEffectiveCoreSeconds / 3600.0
+				if podCoresUsed > maxCoreUsage {
+					maxCoreUsage = podCoresUsed
 				}
 			}
 
 			// Update summary with the count of unique hours
-			err = repo.UpdatePodDailySummaryWithHours(podID, date, maxCoreUsage, totalEffectiveCoreSeconds, hourCount)
+			err := repo.UpdatePodDailySummary(podID, dateStr, maxCoreUsage, totalEffectiveCoreSeconds, hourCount)
 			if err != nil {
 				log.Printf("Failed to update pod_daily_summary for pod %s on %s: %v", podID, dateStr, err)
 				continue

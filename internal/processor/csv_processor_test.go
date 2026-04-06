@@ -3,6 +3,7 @@ package processor
 import (
 	"context"
 	"encoding/csv"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -263,4 +264,189 @@ func TestProcessCSVMultipleDaysHours(t *testing.T) {
 		"pod-1", "2025-05-18").Scan(&day2Hours)
 	require.NoError(t, err)
 	assert.Equal(t, 3, day2Hours, "Day 2 should have 3 unique hours (10:00, 11:00, 12:00)")
+}
+
+// Made with Bob 1.0.1
+// TestProcessCSVNodeTotalHoursCount verifies that node total_hours counts unique hours, not total records
+func TestProcessCSVNodeTotalHoursCount(t *testing.T) {
+	pool := testutils.SetupTestDB(t)
+	repo := db.NewRepository(pool)
+	ctx := context.Background()
+
+	os.Setenv("POD_LABEL_KEYS", "label_rht_comp")
+	defer os.Unsetenv("POD_LABEL_KEYS")
+
+	clusterID := "10f5a0f9-223a-41c1-8456-9a3eb0323a99"
+	clusterUUID, _ := uuid.Parse(clusterID)
+
+	// Setup cluster
+	err := repo.UpsertCluster(clusterUUID, "test-cluster")
+	require.NoError(t, err)
+
+	// Create CSV with multiple records in the same hours for nodes
+	// Simulates the scenario: 1 node, 3 unique hours, but 30 total records
+	// Hour 14:00 - 10 records
+	// Hour 15:00 - 10 records
+	// Hour 16:00 - 10 records
+	// Total: 30 records, but only 3 unique hours
+	csvBuilder := strings.Builder{}
+	csvBuilder.WriteString("report_period_start,report_period_end,interval_start,interval_end,node,namespace,pod,pod_usage_cpu_core_seconds,pod_request_cpu_core_seconds,pod_limit_cpu_core_seconds,pod_usage_memory_byte_seconds,pod_request_memory_byte_seconds,pod_limit_memory_byte_seconds,node_capacity_cpu_cores,node_capacity_cpu_core_seconds,node_capacity_memory_bytes,node_capacity_memory_byte_seconds,node_role,resource_id,pod_labels\n")
+
+	// Generate 10 records for hour 14:00
+	for i := 0; i < 10; i++ {
+		csvBuilder.WriteString("2025-05-17 00:00:00 +0000 UTC,2025-05-17 23:59:59 +0000 UTC,2025-05-17 14:00:00 +0000 UTC,2025-05-17 15:00:00 +0000 UTC,test-node-1,test,test-pod,100,200,300,1000,2000,3000,8,14400,17179869184,61729433600,worker,node-id-123,app:web|label_rht_comp:TEST\n")
+	}
+
+	// Generate 10 records for hour 15:00
+	for i := 0; i < 10; i++ {
+		csvBuilder.WriteString("2025-05-17 00:00:00 +0000 UTC,2025-05-17 23:59:59 +0000 UTC,2025-05-17 15:00:00 +0000 UTC,2025-05-17 16:00:00 +0000 UTC,test-node-1,test,test-pod,150,250,350,1500,2500,3500,8,14400,17179869184,61729433600,worker,node-id-123,app:web|label_rht_comp:TEST\n")
+	}
+
+	// Generate 10 records for hour 16:00
+	for i := 0; i < 10; i++ {
+		csvBuilder.WriteString("2025-05-17 00:00:00 +0000 UTC,2025-05-17 23:59:59 +0000 UTC,2025-05-17 16:00:00 +0000 UTC,2025-05-17 17:00:00 +0000 UTC,test-node-1,test,test-pod,200,300,400,2000,3000,4000,8,14400,17179869184,61729433600,worker,node-id-123,app:web|label_rht_comp:TEST\n")
+	}
+
+	reader := csv.NewReader(strings.NewReader(csvBuilder.String()))
+	err = ProcessCSV(ctx, repo, reader, clusterID)
+	assert.NoError(t, err)
+
+	// Query node_daily_summary to check total_hours
+	var totalHours int
+	err = pool.QueryRow(context.Background(),
+		`SELECT total_hours 
+		 FROM node_daily_summary nds
+		 JOIN nodes n ON nds.node_id = n.id
+		 WHERE n.name = $1 AND nds.date = $2 AND nds.core_count = $3`,
+		"test-node-1", "2025-05-17", 8).Scan(&totalHours)
+
+	require.NoError(t, err, "Should find node_daily_summary record")
+
+	// The fix: total_hours should be 3 (unique hours: 14:00, 15:00, 16:00)
+	// NOT 30 (total number of records)
+	assert.Equal(t, 3, totalHours, "total_hours should count unique hours (3), not total records (30)")
+}
+
+// Made with Bob 1.0.1
+// TestProcessCSVNodeMultipleDaysHours verifies node total_hours across multiple days
+func TestProcessCSVNodeMultipleDaysHours(t *testing.T) {
+	pool := testutils.SetupTestDB(t)
+	repo := db.NewRepository(pool)
+	ctx := context.Background()
+
+	os.Setenv("POD_LABEL_KEYS", "label_rht_comp")
+	defer os.Unsetenv("POD_LABEL_KEYS")
+
+	clusterID := "10f5a0f9-223a-41c1-8456-9a3eb0323a99"
+	clusterUUID, _ := uuid.Parse(clusterID)
+
+	err := repo.UpsertCluster(clusterUUID, "test-cluster")
+	require.NoError(t, err)
+
+	// CSV with node data across 2 days
+	// Day 1 (May 17): 2 unique hours (14:00, 15:00) with 5 records each
+	// Day 2 (May 18): 4 unique hours (10:00, 11:00, 12:00, 13:00) with 3 records each
+	csvBuilder := strings.Builder{}
+	csvBuilder.WriteString("report_period_start,report_period_end,interval_start,interval_end,node,namespace,pod,pod_usage_cpu_core_seconds,pod_request_cpu_core_seconds,pod_limit_cpu_core_seconds,pod_usage_memory_byte_seconds,pod_request_memory_byte_seconds,pod_limit_memory_byte_seconds,node_capacity_cpu_cores,node_capacity_cpu_core_seconds,node_capacity_memory_bytes,node_capacity_memory_byte_seconds,node_role,resource_id,pod_labels\n")
+
+	// Day 1: 5 records at 14:00
+	for i := 0; i < 5; i++ {
+		csvBuilder.WriteString("2025-05-17 00:00:00 +0000 UTC,2025-05-17 23:59:59 +0000 UTC,2025-05-17 14:00:00 +0000 UTC,2025-05-17 15:00:00 +0000 UTC,node-multi,test,pod-1,100,200,300,1000,2000,3000,4,14400,17179869184,61729433600,worker,node-456,label_rht_comp:TEST\n")
+	}
+
+	// Day 1: 5 records at 15:00
+	for i := 0; i < 5; i++ {
+		csvBuilder.WriteString("2025-05-17 00:00:00 +0000 UTC,2025-05-17 23:59:59 +0000 UTC,2025-05-17 15:00:00 +0000 UTC,2025-05-17 16:00:00 +0000 UTC,node-multi,test,pod-1,150,250,350,1500,2500,3500,4,14400,17179869184,61729433600,worker,node-456,label_rht_comp:TEST\n")
+	}
+
+	// Day 2: 3 records each for 4 different hours
+	for hour := 10; hour <= 13; hour++ {
+		for i := 0; i < 3; i++ {
+			csvBuilder.WriteString(fmt.Sprintf("2025-05-18 00:00:00 +0000 UTC,2025-05-18 23:59:59 +0000 UTC,2025-05-18 %02d:00:00 +0000 UTC,2025-05-18 %02d:00:00 +0000 UTC,node-multi,test,pod-1,200,300,400,2000,3000,4000,4,14400,17179869184,61729433600,worker,node-456,label_rht_comp:TEST\n", hour, hour+1))
+		}
+	}
+
+	reader := csv.NewReader(strings.NewReader(csvBuilder.String()))
+	err = ProcessCSV(ctx, repo, reader, clusterID)
+	assert.NoError(t, err)
+
+	// Check Day 1 (May 17) - should have 2 unique hours
+	var day1Hours int
+	err = pool.QueryRow(context.Background(),
+		`SELECT total_hours FROM node_daily_summary nds
+		 JOIN nodes n ON nds.node_id = n.id
+		 WHERE n.name = $1 AND nds.date = $2 AND nds.core_count = $3`,
+		"node-multi", "2025-05-17", 4).Scan(&day1Hours)
+	require.NoError(t, err)
+	assert.Equal(t, 2, day1Hours, "Day 1 should have 2 unique hours (14:00, 15:00)")
+
+	// Check Day 2 (May 18) - should have 4 unique hours
+	var day2Hours int
+	err = pool.QueryRow(context.Background(),
+		`SELECT total_hours FROM node_daily_summary nds
+		 JOIN nodes n ON nds.node_id = n.id
+		 WHERE n.name = $1 AND nds.date = $2 AND nds.core_count = $3`,
+		"node-multi", "2025-05-18", 4).Scan(&day2Hours)
+	require.NoError(t, err)
+	assert.Equal(t, 4, day2Hours, "Day 2 should have 4 unique hours (10:00, 11:00, 12:00, 13:00)")
+}
+
+// Made with Bob 1.0.1
+// TestProcessCSVMaxCoresUsedCalculation verifies that max_cores_used is calculated
+// correctly by dividing core-seconds by 3600 (not by node capacity)
+func TestProcessCSVMaxCoresUsedCalculation(t *testing.T) {
+	pool := testutils.SetupTestDB(t)
+	repo := db.NewRepository(pool)
+	ctx := context.Background()
+
+	os.Setenv("POD_LABEL_KEYS", "label_rht_comp")
+	defer os.Unsetenv("POD_LABEL_KEYS")
+
+	clusterID := "10f5a0f9-223a-41c1-8456-9a3eb0323a99"
+	clusterUUID, _ := uuid.Parse(clusterID)
+	podName := "eap74-helloworld-5575bdb44c-v6tgf"
+	namespace := "eap74"
+
+	// Setup cluster
+	err := repo.UpsertCluster(clusterUUID, "test-cluster")
+	require.NoError(t, err)
+
+	// CSV with realistic data from the logs:
+	// pod_usage_cpu_core_seconds: 74.406755
+	// node_capacity_cpu_core_seconds: 43200
+	// Expected max_cores_used: 74.406755 / 3600 = 0.0207 cores (not 74.406755 / 43200 = 0.00172)
+	csvData := `report_period_start,report_period_end,interval_start,interval_end,node,namespace,pod,pod_usage_cpu_core_seconds,pod_request_cpu_core_seconds,pod_limit_cpu_core_seconds,pod_usage_memory_byte_seconds,pod_request_memory_byte_seconds,pod_limit_memory_byte_seconds,node_capacity_cpu_cores,node_capacity_cpu_core_seconds,node_capacity_memory_bytes,node_capacity_memory_byte_seconds,node_role,resource_id,pod_labels
+2025-05-20 00:00:00 +0000 UTC,2025-05-20 23:59:59 +0000 UTC,2025-05-20 03:00:00 +0000 UTC,2025-05-20 03:59:59 +0000 UTC,worker-node,eap74,eap74-helloworld-5575bdb44c-v6tgf,74.406755,0,0,2556643246080,0,0,12,43200,53446742016,192408271257600,worker,i-test,label_rht_comp:EAP
+2025-05-20 00:00:00 +0000 UTC,2025-05-20 23:59:59 +0000 UTC,2025-05-20 04:00:00 +0000 UTC,2025-05-20 04:59:59 +0000 UTC,worker-node,eap74,eap74-helloworld-5575bdb44c-v6tgf,90.0,0,0,2658516664320,0,0,12,43200,53446742016,192408271257600,worker,i-test,label_rht_comp:EAP`
+
+	reader := csv.NewReader(strings.NewReader(csvData))
+	err = ProcessCSV(ctx, repo, reader, clusterID)
+	assert.NoError(t, err)
+
+	// Get pod ID
+	var podID string
+	err = pool.QueryRow(context.Background(), "SELECT id FROM pods WHERE name = $1 AND namespace = $2 AND cluster_id = $3", podName, namespace, clusterID).Scan(&podID)
+	require.NoError(t, err)
+	podUUID, _ := uuid.Parse(podID)
+
+	// Check pod_daily_summary
+	var maxCoresUsed float64
+	var totalEffectiveCoreSeconds float64
+	err = pool.QueryRow(context.Background(),
+		"SELECT max_cores_used, total_pod_effective_core_seconds FROM pod_daily_summary WHERE pod_id = $1 AND date = $2",
+		podUUID, "2025-05-20").Scan(&maxCoresUsed, &totalEffectiveCoreSeconds)
+	require.NoError(t, err)
+
+	// Hour 03:00: 74.406755 / 3600 = 0.02067 cores
+	// Hour 04:00: 90.0 / 3600 = 0.025 cores
+	// Max should be 0.025 cores (not 0.00172 which would be 74.406755 / 43200)
+	expectedMaxCores := 90.0 / 3600.0
+	assert.InDelta(t, expectedMaxCores, maxCoresUsed, 0.0001,
+		fmt.Sprintf("max_cores_used should be 90.0/3600 = %.4f cores (not 90.0/43200 = %.6f)",
+			expectedMaxCores, 90.0/43200.0))
+
+	// Total effective core seconds should sum both hours
+	expectedTotal := 74.406755 + 90.0
+	assert.InDelta(t, expectedTotal, totalEffectiveCoreSeconds, 0.001,
+		"total_pod_effective_core_seconds should sum both hours")
 }

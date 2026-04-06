@@ -41,9 +41,9 @@ build-image:
 	@command -v $(CONTAINER_RUNTIME) >/dev/null 2>&1 || { echo "Error: $(CONTAINER_RUNTIME) is not installed"; exit 1; }
 	$(CONTAINER_RUNTIME) build -t $(IMAGE_NAME) -f $(CONTAINERFILE) .
 
-# Run tests
+# Run tests (use -p 1 to prevent parallel execution across packages, as tests share the same database)
 test:
-	$(GO) test -cover -v -count=1 ./...
+	$(GO) test -p 1 -cover -v -count=1 ./...
 
 # Run linter (requires golangci-lint)
 lint:
