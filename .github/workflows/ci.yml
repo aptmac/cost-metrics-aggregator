@@ -18,6 +18,15 @@ jobs:
         run: sudo apt-get install -y podman-compose
       - name: Build
         run: make build
+      - name: Create db.env file
+        run: |
+          cat > db.env << EOF
+          POSTGRES_HOST=aggregator-db
+          POSTGRES_PORT=5432
+          POSTGRES_USER=costmetrics
+          POSTGRES_PASSWORD=costmetrics
+          POSTGRES_DB=costmetrics
+          EOF
       - name: Setup test environment
         run: make compose-up
       - name: Run tests
