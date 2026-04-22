@@ -55,4 +55,4 @@ spec:
             cpu: "200m"
             memory: "256Mi"
 
-# Made with Bob
+# Made with Bob 1.0.1

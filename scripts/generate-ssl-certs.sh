@@ -6,10 +6,13 @@ set -e
 # This script creates certificates that will be stored in a Kubernetes secret
 
 NAMESPACE="${1:-cost-metrics}"
-CERT_DIR="./ssl-certs"
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CERT_DIR="${SCRIPT_DIR}/ssl-certs"
 
 echo "Generating self-signed SSL certificates for PostgreSQL..."
 echo "Namespace: ${NAMESPACE}"
+echo "Certificate directory: ${CERT_DIR}"
 echo ""
 
 # Create directory for certificates
