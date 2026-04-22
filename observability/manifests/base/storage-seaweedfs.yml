@@ -1,0 +1,53 @@
+---
+# PVC for Prometheus local storage
+# Size recommendation:
+#   - Small cluster (10-20 pods): 20Gi
+#   - Medium cluster (50-100 pods): 50Gi
+#   - Large cluster (200+ pods): 100Gi
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: cma-observability
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi  # Adjust based on cluster size
+---
+# PVC for Grafana
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data
+  namespace: cma-observability
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+# Thanos object storage configuration for SeaweedFS
+apiVersion: v1
+kind: Secret
+metadata:
+  name: thanos-objstore-config
+  namespace: cma-observability
+type: Opaque
+stringData:
+  thanos.yaml: |
+    type: s3
+    config:
+      bucket: "thanos"
+      endpoint: "seaweedfs:8333"
+      access_key: "seaweedfs"
+      secret_key: "seaweedfs123"
+      insecure: true
+      signature_version2: false
+      http_config:
+        idle_conn_timeout: 90s
+        response_header_timeout: 2m
+
+# Made with Bob

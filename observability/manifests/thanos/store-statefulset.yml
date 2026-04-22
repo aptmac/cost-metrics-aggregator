@@ -1,0 +1,123 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: thanos-store
+  namespace: cma-observability
+spec:
+  serviceName: thanos-store
+  replicas: 1
+  selector:
+    matchLabels:
+      app: thanos-store
+  template:
+    metadata:
+      labels:
+        app: thanos-store
+        thanos-store-api: "true"
+    spec:
+      initContainers:
+        - name: create-bucket
+          image: python:3.11-alpine
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              export PYTHONUSERBASE=/tmp/python
+              export PATH=$PATH:/tmp/python/bin
+              
+              echo "Installing boto3 for S3 operations..."
+              pip install --user --quiet boto3
+              
+              echo "Creating bucket 'thanos' in SeaweedFS..."
+              python3 << 'PYEOF'
+              import boto3
+              from botocore.client import Config
+              import sys
+              
+              # Configure S3 client for SeaweedFS
+              s3 = boto3.client(
+                  's3',
+                  endpoint_url='http://seaweedfs:8333',
+                  aws_access_key_id='seaweedfs',
+                  aws_secret_access_key='seaweedfs123',
+                  config=Config(signature_version='s3v4'),
+                  region_name='us-east-1'
+              )
+              
+              bucket_name = 'thanos'
+              
+              try:
+                  # Check if bucket exists
+                  s3.head_bucket(Bucket=bucket_name)
+                  print(f"✓ Bucket '{bucket_name}' already exists")
+              except:
+                  # Create bucket if it doesn't exist
+                  try:
+                      s3.create_bucket(Bucket=bucket_name)
+                      print(f"✓ Created bucket '{bucket_name}'")
+                  except Exception as e:
+                      print(f"✗ Failed to create bucket: {e}")
+                      sys.exit(1)
+              
+              # List buckets to verify
+              response = s3.list_buckets()
+              print(f"✓ Available buckets: {[b['Name'] for b in response['Buckets']]}")
+              PYEOF
+              
+              echo "Bucket creation complete!"
+      containers:
+        - name: thanos-store
+          image: quay.io/thanos/thanos:v0.41.0
+          args:
+            - store
+            - --data-dir=/var/thanos/store
+            - --objstore.config=$(OBJSTORE_CONFIG)
+            - --http-address=0.0.0.0:10902
+            - --grpc-address=0.0.0.0:10901
+          env:
+            - name: OBJSTORE_CONFIG
+              valueFrom:
+                secretKeyRef:
+                  name: thanos-objstore-config
+                  key: thanos.yaml
+          ports:
+            - containerPort: 10902
+              name: http
+            - containerPort: 10901
+              name: grpc
+          volumeMounts:
+            - name: data
+              mountPath: /var/thanos/store
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thanos-store
+  namespace: cma-observability
+  labels:
+    thanos-store-api: "true"
+spec:
+  selector:
+    app: thanos-store
+  ports:
+    - port: 10901
+      targetPort: 10901
+      name: grpc
+    - port: 10902
+      targetPort: 10902
+      name: http
+  type: ClusterIP
+
+# Made with Bob

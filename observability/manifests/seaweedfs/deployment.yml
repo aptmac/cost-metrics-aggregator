@@ -1,0 +1,173 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: seaweedfs-data
+  namespace: cma-observability
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: seaweedfs-credentials
+  namespace: cma-observability
+type: Opaque
+stringData:
+  # S3 credentials for SeaweedFS
+  admin_access_key_id: "seaweedfs"
+  admin_secret_access_key: "seaweedfs123"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: seaweedfs
+  namespace: cma-observability
+  labels:
+    app: seaweedfs
+spec:
+  serviceName: seaweedfs
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seaweedfs
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+    spec:
+      containers:
+      - name: seaweedfs
+        image: chrislusf/seaweedfs:latest
+        args:
+        - server
+        - -s3
+        - -s3.config=/etc/seaweedfs/s3.json
+        - -dir=/data
+        - -volume.max=0
+        - -s3.allowEmptyFolder=true
+        env:
+        - name: WEED_MASTER_VOLUME_GROWTH_COPY_1
+          value: "1"
+        - name: WEED_MASTER_VOLUME_GROWTH_COPY_2
+          value: "1"
+        - name: WEED_MASTER_VOLUME_GROWTH_COPY_OTHER
+          value: "1"
+        ports:
+        - containerPort: 8333
+          name: s3
+        - containerPort: 9333
+          name: master
+        - containerPort: 8080
+          name: volume
+        - containerPort: 18080
+          name: filer
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: s3-config
+          mountPath: /etc/seaweedfs
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        livenessProbe:
+          tcpSocket:
+            port: 9333
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 5
+        readinessProbe:
+          tcpSocket:
+            port: 8333
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: seaweedfs-data
+      - name: s3-config
+        configMap:
+          name: seaweedfs-s3-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: seaweedfs-s3-config
+  namespace: cma-observability
+data:
+  s3.json: |
+    {
+      "identities": [
+        {
+          "name": "seaweedfs",
+          "credentials": [
+            {
+              "accessKey": "seaweedfs",
+              "secretKey": "seaweedfs123"
+            }
+          ],
+          "actions": [
+            "Admin",
+            "Read",
+            "Write"
+          ]
+        }
+      ]
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs
+  namespace: cma-observability
+  labels:
+    app: seaweedfs
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8333
+    targetPort: 8333
+    protocol: TCP
+    name: s3
+  - port: 9333
+    targetPort: 9333
+    protocol: TCP
+    name: master
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: volume
+  - port: 18080
+    targetPort: 18080
+    protocol: TCP
+    name: filer
+  selector:
+    app: seaweedfs
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: seaweedfs-console
+  namespace: cma-observability
+  labels:
+    app: seaweedfs
+spec:
+  to:
+    kind: Service
+    name: seaweedfs
+  port:
+    targetPort: master
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+
+# Made with Bob

@@ -1,0 +1,68 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: thanos-compactor
+  namespace: cma-observability
+spec:
+  serviceName: thanos-compactor
+  replicas: 1
+  selector:
+    matchLabels:
+      app: thanos-compactor
+  template:
+    metadata:
+      labels:
+        app: thanos-compactor
+    spec:
+      containers:
+        - name: thanos-compactor
+          image: quay.io/thanos/thanos:v0.41.0
+          args:
+            - compact
+            - --data-dir=/var/thanos/compact
+            - --objstore.config=$(OBJSTORE_CONFIG)
+            - --http-address=0.0.0.0:10902
+            - --retention.resolution-raw=30d
+            - --retention.resolution-5m=180d
+            - --retention.resolution-1h=1825d
+            - --wait
+            - --wait-interval=5m
+          env:
+            - name: OBJSTORE_CONFIG
+              valueFrom:
+                secretKeyRef:
+                  name: thanos-objstore-config
+                  key: thanos.yaml
+          ports:
+            - containerPort: 10902
+              name: http
+          volumeMounts:
+            - name: data
+              mountPath: /var/thanos/compact
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thanos-compactor
+  namespace: cma-observability
+spec:
+  selector:
+    app: thanos-compactor
+  ports:
+    - port: 10902
+      targetPort: 10902
+      name: http
+  type: ClusterIP
+
+# Made with Bob
