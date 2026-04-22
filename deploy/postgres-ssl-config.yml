@@ -1,0 +1,18 @@
+---
+# ConfigMap to configure PostgreSQL SSL settings
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-ssl-config
+  namespace: cost-metrics
+data:
+  # PostgreSQL configuration to enable SSL
+  postgresql-ssl.conf: |
+    # SSL Configuration
+    ssl = on
+    ssl_cert_file = '/var/lib/pgsql/certs/server.crt'
+    ssl_key_file = '/var/lib/pgsql/certs/server.key'
+    ssl_min_protocol_version = 'TLSv1.2'
+    ssl_prefer_server_ciphers = on
+
+# Made with Bob

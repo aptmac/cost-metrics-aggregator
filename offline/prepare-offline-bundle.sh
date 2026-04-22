@@ -22,7 +22,7 @@ MANIFESTS_DIR="${BUNDLE_DIR}/manifests"
 # Container images to mirror (core components only)
 declare -A IMAGES=(
     ["cost-metrics-aggregator"]="quay.io/almacdon/cost-metrics-aggregator:latest"
-    ["postgresql-15"]="registry.redhat.io/rhel9/postgresql-15:latest"
+    ["postgresql-16"]="registry.redhat.io/rhel9/postgresql-16:latest"
     ["ubi9-go-toolset"]="registry.access.redhat.com/ubi9/go-toolset:1.21"
     ["ubi9-minimal"]="registry.access.redhat.com/ubi9/ubi-minimal:latest"
     ["grafana"]="docker.io/grafana/grafana:11.4.0"
@@ -162,6 +162,17 @@ cp -r ../deploy/* "${MANIFESTS_DIR}/"
 cp configuration/CostManagementMetricsConfig.yml "${MANIFESTS_DIR}/"
 cp configuration/cost-metrics-db-secret.yml "${MANIFESTS_DIR}/"
 echo -e "${GREEN}✓ Manifests copied (including secret)${NC}"
+echo ""
+
+# Copy SSL certificate generation script
+echo -e "${YELLOW}Copying SSL certificate generation script...${NC}"
+if [ -f "../scripts/generate-ssl-certs.sh" ]; then
+    cp ../scripts/generate-ssl-certs.sh "${SCRIPTS_DIR}/"
+    chmod +x "${SCRIPTS_DIR}/generate-ssl-certs.sh"
+    echo -e "${GREEN}✓ SSL certificate script copied${NC}"
+else
+    echo -e "${YELLOW}Warning: SSL certificate script not found${NC}"
+fi
 echo ""
 
 # Copy offline installation scripts
