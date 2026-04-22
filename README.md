@@ -33,31 +33,54 @@ The Cost Metrics Aggregator is a Go-based application for collecting and aggrega
 ├── go.mod                     # Go module dependencies
 ├── install.sh                 # Online installation script
 ├── api/
-│   ├── handlers/              # Handlers for API requests
-│   └── router.go              # Router for endpoint management
-├── cmd/server/main.go         # Application entry point
+│   ├── handlers/              # API request handlers
+│   │   ├── query.go
+│   │   ├── sources.go
+│   │   └── upload.go
+│   ├── router.go              # API router
+│   └── router_test.go
+├── cmd/
+│   └── server/
+│       └── main.go            # Application entry point
 ├── internal/
 │   ├── config/                # Server configuration
-│   ├── db/migrations/         # SQL migrations (e.g., 0001_init.up.sql)
+│   │   ├── config.go
+│   │   └── config_test.go
+│   ├── db/                    # Database layer
+│   │   ├── repository.go
+│   │   ├── repository_test.go
+│   │   ├── testutils/
+│   │   │   └── setup.go
+│   │   └── migrations/        # SQL migrations
+│   │       ├── 0001_init.up.sql
+│   │       └── 0001_init.down.sql
 │   └── processor/             # CSV processing logic
+│       ├── csv_processor.go
+│       ├── csv_processor_test.go
+│       ├── tar_processor.go
+│       ├── tar_processor_test.go
+│       └── testutils/
+│           └── setup.go
 ├── scripts/                   # Utility scripts
 │   ├── generate-ssl-certs.sh  # SSL certificate generation
+│   ├── reset_db.sh            # Database reset utility
 │   ├── create/                # Partition creation script
+│   │   └── main.go
 │   ├── drop/                  # Partition deletion script
+│   │   └── main.go
 │   └── generate_test_upload/  # Test data generation
-├── examples/                  # Example configurations and demos
-│   ├── online-demo/           # Online deployment examples
-│   └── offline-demo-apps/     # Offline demo applications
+│       └── main.go
 ├── grafana/                   # Grafana dashboard and configuration
-│   ├── dashboard.json
-│   ├── grafana-values.yml
-│   └── install-grafana.sh
-├── deploy/                    # Core deployment manifests
-│   ├── namespace.yml
-│   ├── deployment.yml
-│   ├── service.yml
-│   ├── route.yml
-│   ├── operator/              # Koku Metrics Operator manifests
+│   ├── dashboard.json         # Cost metrics dashboard
+│   ├── grafana-values.yml     # Helm values for Grafana
+│   ├── install-grafana.sh     # Grafana installation script
+│   └── README.md
+├── deploy/                    # Kubernetes deployment manifests
+│   ├── namespace.yml          # CMA namespace
+│   ├── deployment.yml         # CMA application deployment
+│   ├── service.yml            # CMA service
+│   ├── route.yml              # CMA route
+│   ├── operator/              # Koku Metrics Operator
 │   │   ├── operator-serviceaccount.yml
 │   │   ├── operator-clusterrole.yml
 │   │   ├── operator-clusterrolebinding.yml
@@ -65,21 +88,30 @@ The Cost Metrics Aggregator is a Go-based application for collecting and aggrega
 │   │   ├── operator-crd.yml
 │   │   ├── operator-deployment.yml
 │   │   └── CostManagementMetricsConfig.yml
-│   ├── postgres/              # PostgreSQL database manifests
+│   ├── postgres/              # PostgreSQL database
 │   │   ├── postgres-deployment.yml
 │   │   ├── postgres-ssl-config.yml
 │   │   ├── cost-metrics-db-secret.yml
 │   │   ├── cronjob-create-partitions.yml
 │   │   └── cronjob-drop-partitions.yml
-│   └── offline/               # Offline deployment variants
+│   └── offline/               # Offline variants (registry placeholders)
 │       ├── deployment.yml
 │       ├── postgres-deployment.yml
 │       ├── operator-deployment.yml
 │       └── grafana-openshift-values.yaml
-└── offline/                   # Offline deployment resources
+└── offline/                   # Offline/air-gapped deployment
     ├── prepare-offline-bundle.sh
     ├── README.md
-    ├── SETUP.md
+    ├── demo-apps/             # Demo applications bundle
+    │   ├── prepare-offline-demo-bundle.sh
+    │   ├── README.md
+    │   ├── config/            # Helm values
+    │   │   ├── cryostat.yaml
+    │   │   └── eap74.yaml
+    │   └── installation-scripts/
+    │       ├── install-cryostat-offline.sh
+    │       ├── install-eap74-offline.sh
+    │       └── load-images-offline.sh
     └── installation-scripts/
         ├── install-offline.sh
         ├── install-grafana-offline.sh

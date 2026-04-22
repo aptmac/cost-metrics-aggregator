@@ -56,10 +56,10 @@ fi
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_DIR="${SCRIPT_DIR}/../configuration"
+CONFIG_DIR="${SCRIPT_DIR}/../config"
 
 # Use the external values file
-VALUES_FILE="${CONFIG_DIR}/cryostat-offline-values.yaml"
+VALUES_FILE="${CONFIG_DIR}/cryostat.yaml"
 
 # Create a temporary values file with the correct images
 TEMP_VALUES=$(mktemp)

@@ -16,7 +16,7 @@ BUNDLE_DIR="demo-apps-bundle"
 IMAGES_DIR="${BUNDLE_DIR}/images"
 HELM_DIR="${BUNDLE_DIR}/helm-charts"
 SCRIPTS_DIR="${BUNDLE_DIR}/scripts"
-CONFIG_DIR="${BUNDLE_DIR}/configuration"
+CONFIG_DIR="${BUNDLE_DIR}/config"
 
 # Demo application container images
 declare -A IMAGES=(
@@ -133,7 +133,7 @@ echo ""
 
 # Copy configuration files
 echo -e "${YELLOW}Copying configuration files...${NC}"
-cp configuration/*.yaml "${CONFIG_DIR}/"
+cp config/*.yaml "${CONFIG_DIR}/"
 echo -e "${GREEN}✓ Configuration files copied${NC}"
 echo ""
 
