@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: postgres
-        image: 'registry.redhat.io/rhel9/postgresql-16:latest'
+        image: '{{INTERNAL_REGISTRY}}/{{INTERNAL_REGISTRY_NAMESPACE}}/postgresql-16:latest'
         env:
         - name: POSTGRESQL_USER
           value: costmetrics
@@ -79,3 +79,5 @@ spec:
     port: 5432
     targetPort: 5432
   type: ClusterIP
+
+# Made with Bob

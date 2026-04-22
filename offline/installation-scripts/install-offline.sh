@@ -42,8 +42,12 @@ echo -e "${YELLOW}Creating namespace...${NC}"
 oc create namespace ${AGGREGATOR_NAMESPACE} 2>/dev/null || echo "Namespace already exists"
 
 echo -e "${YELLOW}Creating database secret...${NC}"
-if [ -f "../configuration/cost-metrics-db-secret.yml" ]; then
-    oc apply -f ../configuration/cost-metrics-db-secret.yml -n ${AGGREGATOR_NAMESPACE}
+# Try bundle location first, then repo location
+if [ -f "../manifests/cost-metrics-db-secret.yml" ]; then
+    oc apply -f ../manifests/cost-metrics-db-secret.yml -n ${AGGREGATOR_NAMESPACE}
+    echo -e "${GREEN}✓ Database secret created${NC}"
+elif [ -f "../../deploy/cost-metrics-db-secret.yml" ]; then
+    oc apply -f ../../deploy/cost-metrics-db-secret.yml -n ${AGGREGATOR_NAMESPACE}
     echo -e "${GREEN}✓ Database secret created${NC}"
 elif [ -f "cost-metrics-db-secret.yml" ]; then
     oc apply -f cost-metrics-db-secret.yml -n ${AGGREGATOR_NAMESPACE}
@@ -70,10 +74,12 @@ fi
 echo -e "${YELLOW}Applying manifests...${NC}"
 
 # Determine the correct path to manifests
+# When running from bundle, manifests are in ../manifests
+# When running from repo, they're in ../../deploy/offline
 if [ -d "../manifests" ]; then
     MANIFESTS_DIR="../manifests"
-elif [ -d "../deploy" ]; then
-    MANIFESTS_DIR="../deploy"
+elif [ -d "../../deploy/offline" ]; then
+    MANIFESTS_DIR="../../deploy/offline"
 else
     echo -e "${RED}Error: Cannot find manifests directory${NC}"
     exit 1
@@ -106,24 +112,23 @@ else
     echo -e "${YELLOW}Warning: postgres-ssl-config.yml not found in ${MANIFESTS_DIR}${NC}"
 fi
 
-cd "${MANIFESTS_DIR}"
-
-# Update image references to use internal registry
+# Update image references to use internal registry and apply
 for file in postgres-deployment.yml deployment.yml; do
-    if [ -f "$file" ]; then
-        sed -i.bak "s|registry.redhat.io/rhel9/postgresql-16:latest|${INTERNAL_REGISTRY}/${INTERNAL_REGISTRY_NAMESPACE}/postgresql-16:latest|g" "$file"
-        sed -i.bak "s|quay.io/almacdon/cost-metrics-aggregator:latest|${INTERNAL_REGISTRY}/${INTERNAL_REGISTRY_NAMESPACE}/cost-metrics-aggregator:latest|g" "$file"
-        oc apply -f "$file" -n ${AGGREGATOR_NAMESPACE}
+    if [ -f "${MANIFESTS_DIR}/$file" ]; then
+        # Create temp file with substituted values
+        sed "s|{{INTERNAL_REGISTRY}}|${INTERNAL_REGISTRY}|g; s|{{INTERNAL_REGISTRY_NAMESPACE}}|${INTERNAL_REGISTRY_NAMESPACE}|g" "${MANIFESTS_DIR}/$file" | \
+        oc apply -f - -n ${AGGREGATOR_NAMESPACE}
     fi
 done
 
 # Apply other manifests
 for file in service.yml route.yml; do
-    [ -f "$file" ] && oc apply -f "$file" -n ${AGGREGATOR_NAMESPACE}
+    if [ -f "${MANIFESTS_DIR}/$file" ]; then
+        oc apply -f "${MANIFESTS_DIR}/$file" -n ${AGGREGATOR_NAMESPACE}
+    elif [ -f "../../deploy/$file" ]; then
+        oc apply -f "../../deploy/$file" -n ${AGGREGATOR_NAMESPACE}
+    fi
 done
-
-# Return to scripts directory
-cd - > /dev/null
 
 echo -e "${GREEN}✓ Aggregator installed${NC}"
 echo ""
@@ -336,10 +341,10 @@ echo ""
 echo -e "${YELLOW}Applying CostManagementMetricsConfig...${NC}"
 
 # Determine the correct path to the config file
-if [ -f "../configuration/CostManagementMetricsConfig.yml" ]; then
-    CONFIG_FILE="../configuration/CostManagementMetricsConfig.yml"
-elif [ -f "../manifests/CostManagementMetricsConfig.yml" ]; then
+if [ -f "../manifests/CostManagementMetricsConfig.yml" ]; then
     CONFIG_FILE="../manifests/CostManagementMetricsConfig.yml"
+elif [ -f "../../deploy/CostManagementMetricsConfig.yml" ]; then
+    CONFIG_FILE="../../deploy/CostManagementMetricsConfig.yml"
 elif [ -f "CostManagementMetricsConfig.yml" ]; then
     CONFIG_FILE="CostManagementMetricsConfig.yml"
 else

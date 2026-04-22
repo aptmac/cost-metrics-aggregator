@@ -17,7 +17,7 @@ spec:
     spec:
       initContainers:
       - name: init-db
-        image: default-route-openshift-image-registry.apps-crc.testing/cost-metrics/cost-metrics-aggregator:latest
+        image: {{INTERNAL_REGISTRY}}/{{INTERNAL_REGISTRY_NAMESPACE}}/cost-metrics-aggregator:latest
         command: ["/bin/sh", "-c"]
         args:
         - |
@@ -38,7 +38,7 @@ spec:
             memory: "256Mi"
       containers:
       - name: cost-metrics-aggregator
-        image: default-route-openshift-image-registry.apps-crc.testing/cost-metrics/cost-metrics-aggregator:latest
+        image: {{INTERNAL_REGISTRY}}/{{INTERNAL_REGISTRY_NAMESPACE}}/cost-metrics-aggregator:latest
         env:
         - name: DATABASE_URL
           valueFrom:
@@ -54,3 +54,5 @@ spec:
           requests:
             cpu: "200m"
             memory: "256Mi"
+
+# Made with Bob

@@ -56,10 +56,18 @@ fi
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_DIR="${SCRIPT_DIR}/../configuration"
 
-# Use the external values file
-VALUES_FILE="${CONFIG_DIR}/grafana-openshift-values.yaml"
+# Try to find the grafana values file
+# When running from bundle, it's in ../manifests
+# When running from repo, it's in ../../deploy/offline
+if [ -f "${SCRIPT_DIR}/../manifests/grafana-openshift-values.yaml" ]; then
+    VALUES_FILE="${SCRIPT_DIR}/../manifests/grafana-openshift-values.yaml"
+elif [ -f "${SCRIPT_DIR}/../../deploy/offline/grafana-openshift-values.yaml" ]; then
+    VALUES_FILE="${SCRIPT_DIR}/../../deploy/offline/grafana-openshift-values.yaml"
+else
+    echo "Error: grafana-openshift-values.yaml not found"
+    exit 1
+fi
 
 # Create a temporary values file with the correct image
 TEMP_VALUES=$(mktemp)
