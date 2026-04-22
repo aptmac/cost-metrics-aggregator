@@ -34,5 +34,5 @@ test_upload
 test_upload.tar.gz
 
 offline/offline-bundle
-examples/offline-demo-apps/demo-apps-bundle/*
+offline/demo-apps/demo-apps-bundle
 /scripts/ssl-certs

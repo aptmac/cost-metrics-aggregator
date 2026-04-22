@@ -1,0 +1,28 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: koku-metrics-operator
+rules:
+- apiGroups: [""]
+  resources: [pods, services, services/finalizers, endpoints, persistentvolumeclaims, events, configmaps, secrets, namespaces, nodes]
+  verbs: [create, delete, get, list, patch, update, watch]
+- apiGroups: [apps]
+  resources: [deployments, daemonsets, replicasets, statefulsets]
+  verbs: [create, delete, get, list, patch, update, watch]
+- apiGroups: [monitoring.coreos.com]
+  resources: [servicemonitors]
+  verbs: [get, create, list, watch]
+- apiGroups: [koku-metrics.openshift.io]
+  resources: ['*', kokumetricsconfigs, kokumetricsconfigs/status, kokumetricsconfigs/finalizers]
+  verbs: [create, delete, get, list, patch, update, watch]
+- apiGroups: [costmanagement-metrics-cfg.openshift.io]
+  resources: ['*', costmanagementmetricsconfigs, costmanagementmetricsconfigs/status, costmanagementmetricsconfigs/finalizers]
+  verbs: [create, delete, get, list, patch, update, watch]
+- apiGroups: [config.openshift.io]
+  resources: [clusterversions, clusteroperators, infrastructures]
+  verbs: [get, list, watch]
+- apiGroups: [route.openshift.io]
+  resources: [routes]
+  verbs: [get, list, watch, create, update, patch, delete]
+
+# Made with Bob

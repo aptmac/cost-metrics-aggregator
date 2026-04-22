@@ -15,4 +15,4 @@ data:
     ssl_min_protocol_version = 'TLSv1.2'
     ssl_prefer_server_ciphers = on
 
-# Made with Bob
+# Made with Bob 1.0.1

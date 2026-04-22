@@ -1,4 +1,4 @@
-# cost-metrics-aggregator
+# Cost Metrics Aggregator
 
 The Cost Metrics Aggregator is a Go-based application for collecting and aggregating cost-related metrics from Kubernetes clusters, focusing on node vCPU utilization and pod CPU usage for subscription purposes. It stores data in a PostgreSQL database with partitioned tables for efficient time-series management. The application is deployed on OpenShift with automated image builds via Quay.io and supports local development with Podman.
 
@@ -10,6 +10,7 @@ The Cost Metrics Aggregator is a Go-based application for collecting and aggrega
 - Provides RESTful API endpoints to upload metrics and query node and pod data.
 - Deploys on OpenShift with a dedicated PostgreSQL instance and secrets.
 - Supports local development with Podman and `podman-compose` for testing and debugging.
+- Provides scripts for offline setup & installation
 
 ## Prerequisites
 - **OpenShift Deployment**:
@@ -30,28 +31,91 @@ The Cost Metrics Aggregator is a Go-based application for collecting and aggrega
 ├── Makefile                   # Build, test, and deployment tasks
 ├── podman-compose.yaml        # Local development services (app, database)
 ├── go.mod                     # Go module dependencies
+├── install.sh                 # Online installation script
 ├── api/
-│   ├── handlers/              # Handlers for API requests
-│   └── router.go              # Router for endpoint management
-├── cmd/server/main.go         # Application entry point
+│   ├── handlers/              # API request handlers
+│   │   ├── query.go
+│   │   ├── sources.go
+│   │   └── upload.go
+│   ├── router.go              # API router
+│   └── router_test.go
+├── cmd/
+│   └── server/
+│       └── main.go            # Application entry point
 ├── internal/
 │   ├── config/                # Server configuration
-│   ├── db/migrations/         # SQL migrations (e.g., 0001_init.up.sql)
+│   │   ├── config.go
+│   │   └── config_test.go
+│   ├── db/                    # Database layer
+│   │   ├── repository.go
+│   │   ├── repository_test.go
+│   │   ├── testutils/
+│   │   │   └── setup.go
+│   │   └── migrations/        # SQL migrations
+│   │       ├── 0001_init.up.sql
+│   │       └── 0001_init.down.sql
 │   └── processor/             # CSV processing logic
-├── scripts/                   # Go scripts for partition management
-│   ├── create_partitions.go
-│   └── drop_partitions.go
-├── examples/                  # Example configurations, commands, etc.
-├── grafana/                   # Grafana dashboard for monitoring PromQL
-└── deploy/                    # OpenShift manifests
-    ├── namespace.yml
-    ├── cost-metrics-db-secret.yml
-    ├── postgres-deployment.yml
-    ├── deployment.yml
-    ├── service.yml
-    ├── route.yml
-    ├── cronjob-create-partitions.yml
-    └── cronjob-drop-partitions.yml
+│       ├── csv_processor.go
+│       ├── csv_processor_test.go
+│       ├── tar_processor.go
+│       ├── tar_processor_test.go
+│       └── testutils/
+│           └── setup.go
+├── scripts/                   # Utility scripts
+│   ├── generate-ssl-certs.sh  # SSL certificate generation
+│   ├── reset_db.sh            # Database reset utility
+│   ├── create/                # Partition creation script
+│   │   └── main.go
+│   ├── drop/                  # Partition deletion script
+│   │   └── main.go
+│   └── generate_test_upload/  # Test data generation
+│       └── main.go
+├── grafana/                   # Grafana dashboard and configuration
+│   ├── dashboard.json         # Cost metrics dashboard
+│   ├── grafana-values.yml     # Helm values for Grafana
+│   ├── install-grafana.sh     # Grafana installation script
+│   └── README.md
+├── deploy/                    # Kubernetes deployment manifests
+│   ├── namespace.yml          # CMA namespace
+│   ├── deployment.yml         # CMA application deployment
+│   ├── service.yml            # CMA service
+│   ├── route.yml              # CMA route
+│   ├── operator/              # Koku Metrics Operator
+│   │   ├── operator-serviceaccount.yml
+│   │   ├── operator-clusterrole.yml
+│   │   ├── operator-clusterrolebinding.yml
+│   │   ├── operator-prometheus-rolebinding.yml
+│   │   ├── operator-crd.yml
+│   │   ├── operator-deployment.yml
+│   │   └── CostManagementMetricsConfig.yml
+│   ├── postgres/              # PostgreSQL database
+│   │   ├── postgres-deployment.yml
+│   │   ├── postgres-ssl-config.yml
+│   │   ├── cost-metrics-db-secret.yml
+│   │   ├── cronjob-create-partitions.yml
+│   │   └── cronjob-drop-partitions.yml
+│   └── offline/               # Offline variants (registry placeholders)
+│       ├── deployment.yml
+│       ├── postgres-deployment.yml
+│       ├── operator-deployment.yml
+│       └── grafana-openshift-values.yaml
+└── offline/                   # Offline/air-gapped deployment
+    ├── prepare-offline-bundle.sh
+    ├── README.md
+    ├── demo-apps/             # Demo applications bundle
+    │   ├── prepare-offline-demo-bundle.sh
+    │   ├── README.md
+    │   ├── config/            # Helm values
+    │   │   ├── cryostat.yaml
+    │   │   └── eap74.yaml
+    │   └── installation-scripts/
+    │       ├── install-cryostat-offline.sh
+    │       ├── install-eap74-offline.sh
+    │       └── load-images-offline.sh
+    └── installation-scripts/
+        ├── install-offline.sh
+        ├── install-grafana-offline.sh
+        └── load-images-offline.sh
 ```
 
 ## Database Schema
@@ -158,20 +222,36 @@ make compose-down
 ```
 
 ## OpenShift Deployment
-### 1. Build and Push Image
+
+### Quick Start (Online Installation)
+For a streamlined online deployment using public registries:
+```bash
+./install.sh
+```
+
+This script will:
+- Create namespaces for the aggregator and operator
+- Deploy PostgreSQL with SSL configuration
+- Deploy the Cost Metrics Aggregator
+- Install the Koku Metrics Operator
+- Apply the CostManagementMetricsConfig
+
+### Manual Deployment Steps
+
+#### 1. Build and Push Image
 ```bash
 make build
 podman build -t quay.io/almacdon/cost-metrics-aggregator:latest .
 podman push quay.io/almacdon/cost-metrics-aggregator:latest
 ```
 
-### 2. Deploy on OpenShift
+#### 2. Deploy Core Components
 1. Create the `cost-metrics` namespace:
    ```bash
    kubectl apply -f deploy/namespace.yml
    ```
 
-2. Update `deploy/cost-metrics-db-secret.yml` with base64-encoded values:
+2. Update `deploy/postgres/cost-metrics-db-secret.yml` with base64-encoded values:
    - `postgres-password`: Your PostgreSQL password (e.g., `echo -n "costmetrics" | base64`)
    - `database-url`: Connection string with SSL enabled
      - Format: `postgres://<username>:<password>@postgres:5432/costmetrics?sslmode=require`
@@ -182,8 +262,8 @@ podman push quay.io/almacdon/cost-metrics-aggregator:latest
 
 3. Deploy PostgreSQL and secret:
    ```bash
-   kubectl apply -f deploy/cost-metrics-db-secret.yml -n cost-metrics
-   kubectl apply -f deploy/postgres-deployment.yml -n cost-metrics
+   kubectl apply -f deploy/postgres/cost-metrics-db-secret.yml -n cost-metrics
+   kubectl apply -f deploy/postgres/postgres-deployment.yml -n cost-metrics
    ```
 
 4. Deploy the application:
@@ -195,9 +275,24 @@ podman push quay.io/almacdon/cost-metrics-aggregator:latest
 
 5. Deploy CronJobs for partition management:
    ```bash
-   kubectl apply -f deploy/cronjob-create-partitions.yml -n cost-metrics
-   kubectl apply -f deploy/cronjob-drop-partitions.yml -n cost-metrics
+   kubectl apply -f deploy/postgres/cronjob-create-partitions.yml -n cost-metrics
+   kubectl apply -f deploy/postgres/cronjob-drop-partitions.yml -n cost-metrics
    ```
+
+#### 3. Deploy Koku Metrics Operator (Optional)
+If you need the Koku Metrics Operator for cost management:
+```bash
+kubectl apply -f deploy/operator/operator-serviceaccount.yml
+kubectl apply -f deploy/operator/operator-clusterrole.yml
+kubectl apply -f deploy/operator/operator-clusterrolebinding.yml
+kubectl apply -f deploy/operator/operator-prometheus-rolebinding.yml
+kubectl apply -f deploy/operator/operator-crd.yml
+kubectl apply -f deploy/operator/operator-deployment.yml
+kubectl apply -f deploy/operator/CostManagementMetricsConfig.yml -n koku-metrics-operator
+```
+
+### Offline Deployment
+For air-gapped or offline environments, see the [offline deployment guide](offline/README.md).
 
 ### 3. Verify Deployment
 1. Check pod status:

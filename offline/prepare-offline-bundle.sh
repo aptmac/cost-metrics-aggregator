@@ -15,16 +15,13 @@ NC='\033[0m' # No Color
 BUNDLE_DIR="offline-bundle"
 IMAGES_DIR="${BUNDLE_DIR}/images"
 HELM_DIR="${BUNDLE_DIR}/helm-charts"
-GO_DIR="${BUNDLE_DIR}/go-dependencies"
 SCRIPTS_DIR="${BUNDLE_DIR}/scripts"
 MANIFESTS_DIR="${BUNDLE_DIR}/manifests"
 
-# Container images to mirror (core components only)
+# Container images to mirror (runtime components only)
 declare -A IMAGES=(
     ["cost-metrics-aggregator"]="quay.io/almacdon/cost-metrics-aggregator:latest"
     ["postgresql-16"]="registry.redhat.io/rhel9/postgresql-16:latest"
-    ["ubi9-go-toolset"]="registry.access.redhat.com/ubi9/go-toolset:1.21"
-    ["ubi9-minimal"]="registry.access.redhat.com/ubi9/ubi-minimal:latest"
     ["grafana"]="docker.io/grafana/grafana:11.4.0"
     ["koku-metrics-operator"]="quay.io/project-koku/koku-metrics-operator:latest"
 )
@@ -50,7 +47,6 @@ echo -e "${YELLOW}Checking prerequisites...${NC}"
 
 command -v podman >/dev/null 2>&1 || { echo -e "${RED}Error: podman is required but not installed.${NC}" >&2; exit 1; }
 command -v helm >/dev/null 2>&1 || { echo -e "${RED}Error: helm is required but not installed.${NC}" >&2; exit 1; }
-command -v go >/dev/null 2>&1 || { echo -e "${RED}Warning: go is not installed. Skipping Go dependency vendoring.${NC}" >&2; }
 
 echo -e "${GREEN}✓ Prerequisites check passed${NC}"
 echo ""
@@ -69,9 +65,27 @@ echo -e "${BLUE}========================================${NC}"
 echo ""
 sleep 2
 
+# Check if bundle already exists
+if [ -d "${BUNDLE_DIR}" ]; then
+    echo -e "${RED}========================================${NC}"
+    echo -e "${RED}Error: Offline bundle already exists${NC}"
+    echo -e "${RED}========================================${NC}"
+    echo -e ""
+    echo -e "The directory '${BUNDLE_DIR}' already exists."
+    echo -e "Please remove it before creating a new bundle:"
+    echo -e ""
+    echo -e "  ${YELLOW}rm -rf ${BUNDLE_DIR}${NC}"
+    echo -e ""
+    echo -e "Or if you want to keep the old bundle, rename it first:"
+    echo -e ""
+    echo -e "  ${YELLOW}mv ${BUNDLE_DIR} ${BUNDLE_DIR}-backup-\$(date +%Y%m%d)${NC}"
+    echo -e ""
+    exit 1
+fi
+
 # Create directory structure
 echo -e "${YELLOW}Creating directory structure...${NC}"
-mkdir -p "${IMAGES_DIR}" "${HELM_DIR}" "${GO_DIR}" "${SCRIPTS_DIR}" "${MANIFESTS_DIR}"
+mkdir -p "${IMAGES_DIR}" "${HELM_DIR}" "${SCRIPTS_DIR}" "${MANIFESTS_DIR}"
 echo -e "${GREEN}✓ Directories created${NC}"
 echo ""
 
@@ -118,50 +132,26 @@ for chart_name in "${!HELM_CHARTS[@]}"; do
 done
 echo ""
 
-# Package Go dependencies
-echo -e "${YELLOW}Packaging Go dependencies...${NC}"
-if command -v go >/dev/null 2>&1; then
-    # Save current directory
-    CURRENT_DIR=$(pwd)
-    
-    # Copy go.mod and go.sum
-    if [ -f "../go.mod" ]; then
-        cp ../go.mod "${GO_DIR}/"
-        echo -e "  ✓ Copied go.mod"
-    fi
-    
-    if [ -f "../go.sum" ]; then
-        cp ../go.sum "${GO_DIR}/"
-        echo -e "  ✓ Copied go.sum"
-    fi
-    
-    # Vendor dependencies
-    echo -e "  Vendoring Go dependencies..."
-    cd ..
-    if go mod vendor; then
-        # Use absolute path for GO_DIR
-        cp -r vendor "${CURRENT_DIR}/${GO_DIR}/"
-        echo -e "${GREEN}  ✓ Go dependencies vendored${NC}"
-        
-        # Clean up vendor directory from source
-        echo -e "  Cleaning up vendor directory..."
-        rm -rf vendor
-        echo -e "${GREEN}  ✓ Vendor directory removed${NC}"
-    else
-        echo -e "${YELLOW}  Warning: Failed to vendor dependencies${NC}"
-    fi
-    cd "${CURRENT_DIR}"
-else
-    echo -e "${YELLOW}  Skipping Go dependency vendoring (go not installed)${NC}"
-fi
-echo ""
-
 # Copy deployment manifests
 echo -e "${YELLOW}Copying deployment manifests...${NC}"
-cp -r ../deploy/* "${MANIFESTS_DIR}/"
-cp configuration/CostManagementMetricsConfig.yml "${MANIFESTS_DIR}/"
-cp configuration/cost-metrics-db-secret.yml "${MANIFESTS_DIR}/"
-echo -e "${GREEN}✓ Manifests copied (including secret)${NC}"
+# Copy offline-specific manifests (with registry placeholders)
+cp ../deploy/offline/*.yml "${MANIFESTS_DIR}/" 2>/dev/null || true
+# Copy postgres configs
+cp ../deploy/postgres/cost-metrics-db-secret.yml "${MANIFESTS_DIR}/"
+cp ../deploy/postgres/postgres-ssl-config.yml "${MANIFESTS_DIR}/"
+cp ../deploy/postgres/cronjob-*.yml "${MANIFESTS_DIR}/" 2>/dev/null || true
+# Copy operator manifests (RBAC, CRD, config)
+cp ../deploy/operator/operator-serviceaccount.yml "${MANIFESTS_DIR}/"
+cp ../deploy/operator/operator-clusterrole.yml "${MANIFESTS_DIR}/"
+cp ../deploy/operator/operator-clusterrolebinding.yml "${MANIFESTS_DIR}/"
+cp ../deploy/operator/operator-prometheus-rolebinding.yml "${MANIFESTS_DIR}/"
+cp ../deploy/operator/operator-crd.yml "${MANIFESTS_DIR}/"
+cp ../deploy/operator/CostManagementMetricsConfig.yml "${MANIFESTS_DIR}/"
+# Copy shared manifests from main deploy directory
+for file in namespace.yml service.yml route.yml; do
+    [ -f "../deploy/$file" ] && cp "../deploy/$file" "${MANIFESTS_DIR}/"
+done
+echo -e "${GREEN}✓ Manifests copied (offline + postgres + operator + shared)${NC}"
 echo ""
 
 # Copy SSL certificate generation script
@@ -182,11 +172,8 @@ chmod +x "${SCRIPTS_DIR}"/*.sh
 echo -e "${GREEN}✓ Installation scripts copied${NC}"
 echo ""
 
-# Copy configuration files (core only, no demo apps)
-echo -e "${YELLOW}Copying configuration files...${NC}"
-mkdir -p "${BUNDLE_DIR}/configuration"
-cp configuration/grafana-openshift-values.yaml "${BUNDLE_DIR}/configuration/" 2>/dev/null || true
-echo -e "${GREEN}✓ Configuration files copied${NC}"
+# Grafana configuration is already copied from deploy/offline
+echo -e "${GREEN}✓ All configurations included${NC}"
 echo ""
 
 # Copy Grafana dashboard

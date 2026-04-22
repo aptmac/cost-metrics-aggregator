@@ -1,0 +1,81 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: cost-metrics
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: 'registry.redhat.io/rhel9/postgresql-16:latest'
+        env:
+        - name: POSTGRESQL_USER
+          value: costmetrics
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cost-metrics-db
+              key: postgres-password
+        - name: POSTGRESQL_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cost-metrics-db
+              key: postgres-password
+        - name: POSTGRESQL_DATABASE
+          value: costmetrics
+        - name: POSTGRESQL_ENABLE_TLS
+          value: "true"
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/pgsql/data
+        - name: postgres-ssl-certs
+          mountPath: /var/lib/pgsql/certs
+          readOnly: true
+        - name: postgres-ssl-config
+          mountPath: /opt/app-root/src/postgresql-cfg/postgresql-ssl.conf
+          subPath: postgresql-ssl.conf
+          readOnly: true
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+      volumes:
+        - name: postgres-storage
+          emptyDir: {}
+        - name: postgres-ssl-certs
+          secret:
+            secretName: postgres-ssl-certs
+            defaultMode: 0600
+        - name: postgres-ssl-config
+          configMap:
+            name: postgres-ssl-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: cost-metrics
+spec:
+  selector:
+    app: postgres
+  ports:
+  - protocol: TCP
+    port: 5432
+    targetPort: 5432
+  type: ClusterIP
