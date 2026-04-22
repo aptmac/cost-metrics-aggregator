@@ -79,8 +79,10 @@ Create a `./db.env` file for the application:
 echo "DATABASE_URL=postgres://costmetrics:costmetrics@db:5432/costmetrics?sslmode=disable" > ./db.env
 echo "POD_LABEL_KEYS=label_rht_comp" >> ./db.env
 ```
-- `DATABASE_URL`: Matches the PostgreSQL service in `podman-compose.yaml`.
+- `DATABASE_URL`: Matches the PostgreSQL service in `podman-compose.yaml`. Uses `sslmode=disable` for local development since the local PostgreSQL container doesn't have SSL configured.
 - `POD_LABEL_KEYS`: Defines pod labels for filtering (e.g., `label_rht_comp`).
+
+**Note**: For OpenShift/production deployments, SSL is enabled by default. The deployment uses `sslmode=require` in the secret configuration.
 
 ### 3. Start Services
 Use the `Makefile` to start the application and PostgreSQL database:
@@ -169,9 +171,14 @@ podman push quay.io/almacdon/cost-metrics-aggregator:latest
    kubectl apply -f deploy/namespace.yml
    ```
 
-2. Update `deploy/cost-metrics-db-secret.yml` with a base64-encoded `DATABASE_URL`:
-   - Format: `postgres://<username>:<password>@postgres:5432/costmetrics`
-   - Example: Encode `postgres://costmetrics:costmetrics@postgres:5432/costmetrics` using `echo -n "<url>" | base64`.
+2. Update `deploy/cost-metrics-db-secret.yml` with base64-encoded values:
+   - `postgres-password`: Your PostgreSQL password (e.g., `echo -n "costmetrics" | base64`)
+   - `database-url`: Connection string with SSL enabled
+     - Format: `postgres://<username>:<password>@postgres:5432/costmetrics?sslmode=require`
+     - Example: `echo -n "postgres://costmetrics:costmetrics@postgres:5432/costmetrics?sslmode=require" | base64`
+     - Result: `cG9zdGdyZXM6Ly9jb3N0bWV0cmljczpjb3N0bWV0cmljc0Bwb3N0Z3Jlczo1NDMyL2Nvc3RtZXRyaWNzP3NzbG1vZGU9cmVxdWlyZQ==`
+   
+   **Note**: The PostgreSQL deployment is configured with `POSTGRESQL_ENABLE_TLS=true` to support SSL connections.
 
 3. Deploy PostgreSQL and secret:
    ```bash

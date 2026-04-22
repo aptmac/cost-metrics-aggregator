@@ -58,7 +58,7 @@ metadata:
   namespace: ${AGGREGATOR_NAMESPACE}
 type: Opaque
 stringData:
-  database-url: postgresql://costmetrics:costmetrics123@postgres:5432/costmetrics?sslmode=disable
+  database-url: postgresql://costmetrics:costmetrics123@postgres:5432/costmetrics?sslmode=require
   postgres-password: costmetrics123
   POSTGRES_USER: costmetrics
   POSTGRES_PASSWORD: costmetrics123
@@ -77,6 +77,33 @@ elif [ -d "../deploy" ]; then
 else
     echo -e "${RED}Error: Cannot find manifests directory${NC}"
     exit 1
+fi
+
+# Generate SSL certificates
+echo -e "${YELLOW}Generating SSL certificates for PostgreSQL...${NC}"
+CERT_SCRIPT="../../scripts/generate-ssl-certs.sh"
+if [ -f "${CERT_SCRIPT}" ]; then
+    bash "${CERT_SCRIPT}" ${AGGREGATOR_NAMESPACE}
+    echo -e "${GREEN}✓ SSL certificates generated${NC}"
+else
+    echo -e "${YELLOW}Warning: SSL certificate script not found at ${CERT_SCRIPT}${NC}"
+    echo -e "${YELLOW}Checking in bundle scripts directory...${NC}"
+    if [ -f "generate-ssl-certs.sh" ]; then
+        bash generate-ssl-certs.sh ${AGGREGATOR_NAMESPACE}
+        echo -e "${GREEN}✓ SSL certificates generated${NC}"
+    else
+        echo -e "${YELLOW}SSL certificate script not found. SSL will not be enabled.${NC}"
+        echo -e "${YELLOW}Run scripts/generate-ssl-certs.sh manually if needed.${NC}"
+    fi
+fi
+
+# Apply SSL config if it exists
+echo -e "${YELLOW}Applying SSL configuration...${NC}"
+if [ -f "${MANIFESTS_DIR}/postgres-ssl-config.yml" ]; then
+    oc apply -f "${MANIFESTS_DIR}/postgres-ssl-config.yml" -n ${AGGREGATOR_NAMESPACE}
+    echo -e "${GREEN}✓ SSL configuration applied${NC}"
+else
+    echo -e "${YELLOW}Warning: postgres-ssl-config.yml not found in ${MANIFESTS_DIR}${NC}"
 fi
 
 cd "${MANIFESTS_DIR}"

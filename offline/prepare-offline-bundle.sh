@@ -164,6 +164,17 @@ cp configuration/cost-metrics-db-secret.yml "${MANIFESTS_DIR}/"
 echo -e "${GREEN}✓ Manifests copied (including secret)${NC}"
 echo ""
 
+# Copy SSL certificate generation script
+echo -e "${YELLOW}Copying SSL certificate generation script...${NC}"
+if [ -f "../scripts/generate-ssl-certs.sh" ]; then
+    cp ../scripts/generate-ssl-certs.sh "${SCRIPTS_DIR}/"
+    chmod +x "${SCRIPTS_DIR}/generate-ssl-certs.sh"
+    echo -e "${GREEN}✓ SSL certificate script copied${NC}"
+else
+    echo -e "${YELLOW}Warning: SSL certificate script not found${NC}"
+fi
+echo ""
+
 # Copy offline installation scripts
 echo -e "${YELLOW}Copying offline installation scripts...${NC}"
 cp installation-scripts/*.sh "${SCRIPTS_DIR}/"

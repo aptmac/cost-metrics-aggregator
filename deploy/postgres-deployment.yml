@@ -34,11 +34,20 @@ spec:
               key: postgres-password
         - name: POSTGRESQL_DATABASE
           value: costmetrics
+        - name: POSTGRESQL_ENABLE_TLS
+          value: "true"
         ports:
         - containerPort: 5432
         volumeMounts:
         - name: postgres-storage
           mountPath: /var/lib/pgsql/data
+        - name: postgres-ssl-certs
+          mountPath: /var/lib/pgsql/certs
+          readOnly: true
+        - name: postgres-ssl-config
+          mountPath: /opt/app-root/src/postgresql-cfg/postgresql-ssl.conf
+          subPath: postgresql-ssl.conf
+          readOnly: true
         resources:
           limits:
             cpu: "1000m"
@@ -49,6 +58,13 @@ spec:
       volumes:
         - name: postgres-storage
           emptyDir: {}
+        - name: postgres-ssl-certs
+          secret:
+            secretName: postgres-ssl-certs
+            defaultMode: 0600
+        - name: postgres-ssl-config
+          configMap:
+            name: postgres-ssl-config
 ---
 apiVersion: v1
 kind: Service
