@@ -84,148 +84,13 @@ echo ""
 echo -e "${YELLOW}Creating namespace...${NC}"
 oc create namespace ${OPERATOR_NAMESPACE} 2>/dev/null || echo "Namespace already exists"
 
-echo -e "${YELLOW}Creating ServiceAccount...${NC}"
-cat <<EOF | oc apply -f -
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: koku-metrics-operator
-  namespace: ${OPERATOR_NAMESPACE}
-EOF
-
-echo -e "${YELLOW}Creating comprehensive ClusterRole...${NC}"
-cat <<EOF | oc apply -f -
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: koku-metrics-operator
-rules:
-- apiGroups: [""]
-  resources: [pods, services, services/finalizers, endpoints, persistentvolumeclaims, events, configmaps, secrets, namespaces, nodes]
-  verbs: [create, delete, get, list, patch, update, watch]
-- apiGroups: [apps]
-  resources: [deployments, daemonsets, replicasets, statefulsets]
-  verbs: [create, delete, get, list, patch, update, watch]
-- apiGroups: [monitoring.coreos.com]
-  resources: [servicemonitors]
-  verbs: [get, create, list, watch]
-- apiGroups: [koku-metrics.openshift.io]
-  resources: ['*', kokumetricsconfigs, kokumetricsconfigs/status, kokumetricsconfigs/finalizers]
-  verbs: [create, delete, get, list, patch, update, watch]
-- apiGroups: [costmanagement-metrics-cfg.openshift.io]
-  resources: ['*', costmanagementmetricsconfigs, costmanagementmetricsconfigs/status, costmanagementmetricsconfigs/finalizers]
-  verbs: [create, delete, get, list, patch, update, watch]
-- apiGroups: [config.openshift.io]
-  resources: [clusterversions, clusteroperators, infrastructures]
-  verbs: [get, list, watch]
-- apiGroups: [route.openshift.io]
-  resources: [routes]
-  verbs: [get, list, watch, create, update, patch, delete]
-EOF
-
-echo -e "${YELLOW}Creating ClusterRoleBinding...${NC}"
-cat <<EOF | oc apply -f -
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: koku-metrics-operator
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: koku-metrics-operator
-subjects:
-- kind: ServiceAccount
-  name: koku-metrics-operator
-  namespace: ${OPERATOR_NAMESPACE}
-EOF
-
-echo -e "${YELLOW}Granting Prometheus access...${NC}"
-cat <<EOF | oc apply -f -
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: koku-metrics-operator-prometheus-view
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cluster-monitoring-view
-subjects:
-- kind: ServiceAccount
-  name: koku-metrics-operator
-  namespace: ${OPERATOR_NAMESPACE}
-EOF
-
-echo -e "${YELLOW}Creating CostManagementMetricsConfig CRD...${NC}"
-cat <<EOF | oc apply -f -
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: costmanagementmetricsconfigs.costmanagement-metrics-cfg.openshift.io
-spec:
-  group: costmanagement-metrics-cfg.openshift.io
-  names:
-    kind: CostManagementMetricsConfig
-    listKind: CostManagementMetricsConfigList
-    plural: costmanagementmetricsconfigs
-    singular: costmanagementmetricsconfig
-  scope: Namespaced
-  versions:
-  - name: v1beta1
-    served: true
-    storage: true
-    schema:
-      openAPIV3Schema:
-        type: object
-        properties:
-          spec:
-            type: object
-            x-kubernetes-preserve-unknown-fields: true
-          status:
-            type: object
-            x-kubernetes-preserve-unknown-fields: true
-    subresources:
-      status: {}
-EOF
-
-echo -e "${YELLOW}Creating Operator Deployment...${NC}"
-cat <<EOF | oc apply -f -
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: koku-metrics-operator
-  namespace: ${OPERATOR_NAMESPACE}
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      name: koku-metrics-operator
-  template:
-    metadata:
-      labels:
-        name: koku-metrics-operator
-    spec:
-      serviceAccountName: koku-metrics-operator
-      containers:
-      - name: koku-metrics-operator
-        image: quay.io/project-koku/koku-metrics-operator:latest
-        imagePullPolicy: Always
-        env:
-        - name: WATCH_NAMESPACE
-          value: ""
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: OPERATOR_NAME
-          value: "koku-metrics-operator"
-        resources:
-          limits:
-            cpu: 500m
-            memory: 512Mi
-          requests:
-            cpu: 100m
-            memory: 128Mi
-EOF
+echo -e "${YELLOW}Applying operator manifests...${NC}"
+oc apply -f deploy/operator-serviceaccount.yml
+oc apply -f deploy/operator-clusterrole.yml
+oc apply -f deploy/operator-clusterrolebinding.yml
+oc apply -f deploy/operator-prometheus-rolebinding.yml
+oc apply -f deploy/operator-crd.yml
+oc apply -f deploy/operator-deployment.yml
 
 echo -e "${GREEN}✓ Operator installed${NC}"
 echo ""
@@ -277,6 +142,5 @@ echo ""
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Installation Complete!${NC}"
 echo -e "${GREEN}========================================${NC}"
-echo ""
 
 # Made with Bob 1.0.1

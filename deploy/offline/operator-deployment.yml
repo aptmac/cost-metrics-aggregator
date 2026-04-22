@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: koku-metrics-operator
+  namespace: koku-metrics-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: koku-metrics-operator
+  template:
+    metadata:
+      labels:
+        name: koku-metrics-operator
+    spec:
+      serviceAccountName: koku-metrics-operator
+      imagePullSecrets:
+      - name: koku-registry-pull-secret
+      containers:
+      - name: koku-metrics-operator
+        image: {{INTERNAL_REGISTRY}}/{{INTERNAL_REGISTRY_NAMESPACE}}/koku-metrics-operator:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: WATCH_NAMESPACE
+          value: ""
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: OPERATOR_NAME
+          value: "koku-metrics-operator"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+
+# Made with Bob

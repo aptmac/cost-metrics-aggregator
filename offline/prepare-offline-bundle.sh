@@ -65,6 +65,24 @@ echo -e "${BLUE}========================================${NC}"
 echo ""
 sleep 2
 
+# Check if bundle already exists
+if [ -d "${BUNDLE_DIR}" ]; then
+    echo -e "${RED}========================================${NC}"
+    echo -e "${RED}Error: Offline bundle already exists${NC}"
+    echo -e "${RED}========================================${NC}"
+    echo -e ""
+    echo -e "The directory '${BUNDLE_DIR}' already exists."
+    echo -e "Please remove it before creating a new bundle:"
+    echo -e ""
+    echo -e "  ${YELLOW}rm -rf ${BUNDLE_DIR}${NC}"
+    echo -e ""
+    echo -e "Or if you want to keep the old bundle, rename it first:"
+    echo -e ""
+    echo -e "  ${YELLOW}mv ${BUNDLE_DIR} ${BUNDLE_DIR}-backup-\$(date +%Y%m%d)${NC}"
+    echo -e ""
+    exit 1
+fi
+
 # Create directory structure
 echo -e "${YELLOW}Creating directory structure...${NC}"
 mkdir -p "${IMAGES_DIR}" "${HELM_DIR}" "${SCRIPTS_DIR}" "${MANIFESTS_DIR}"
@@ -121,11 +139,17 @@ cp ../deploy/offline/*.yml "${MANIFESTS_DIR}/" 2>/dev/null || true
 # Copy shared configs (no registry references)
 cp ../deploy/cost-metrics-db-secret.yml "${MANIFESTS_DIR}/"
 cp ../deploy/CostManagementMetricsConfig.yml "${MANIFESTS_DIR}/"
+# Copy operator manifests (shared RBAC, CRD, etc.)
+cp ../deploy/operator-serviceaccount.yml "${MANIFESTS_DIR}/"
+cp ../deploy/operator-clusterrole.yml "${MANIFESTS_DIR}/"
+cp ../deploy/operator-clusterrolebinding.yml "${MANIFESTS_DIR}/"
+cp ../deploy/operator-prometheus-rolebinding.yml "${MANIFESTS_DIR}/"
+cp ../deploy/operator-crd.yml "${MANIFESTS_DIR}/"
 # Copy shared manifests from main deploy directory
 for file in namespace.yml service.yml route.yml postgres-ssl-config.yml cronjob-*.yml; do
     [ -f "../deploy/$file" ] && cp "../deploy/$file" "${MANIFESTS_DIR}/"
 done
-echo -e "${GREEN}✓ Manifests copied (offline + shared configs)${NC}"
+echo -e "${GREEN}✓ Manifests copied (offline + shared configs + operator)${NC}"
 echo ""
 
 # Copy SSL certificate generation script

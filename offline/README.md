@@ -1,4 +1,4 @@
-# Offline Demonstration
+# Offline Installation
 
 Log into Red Hat Registry:
 ```
