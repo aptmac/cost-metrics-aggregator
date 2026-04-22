@@ -1,0 +1,72 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thanos-query
+  namespace: cma-observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: thanos-query
+  template:
+    metadata:
+      labels:
+        app: thanos-query
+    spec:
+      containers:
+        - name: thanos-query
+          image: quay.io/thanos/thanos:v0.41.0
+          args:
+            - query
+            - --http-address=0.0.0.0:9090
+            - --grpc-address=0.0.0.0:10901
+            - --endpoint=dnssrv+_grpc._tcp.thanos-sidecar.cma-observability.svc.cluster.local
+            - --endpoint=dnssrv+_grpc._tcp.thanos-store.cma-observability.svc.cluster.local
+            - --query.replica-label=replica
+          ports:
+            - containerPort: 9090
+              name: http
+            - containerPort: 10901
+              name: grpc
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thanos-query
+  namespace: cma-observability
+spec:
+  selector:
+    app: thanos-query
+  ports:
+    - port: 9090
+      targetPort: 9090
+      name: http
+    - port: 10901
+      targetPort: 10901
+      name: grpc
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: thanos-query
+  namespace: cma-observability
+spec:
+  to:
+    kind: Service
+    name: thanos-query
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+
+# Made with Bob

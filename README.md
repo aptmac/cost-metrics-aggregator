@@ -70,11 +70,36 @@ The Cost Metrics Aggregator is a Go-based application for collecting and aggrega
 │   │   └── main.go
 │   └── generate_test_upload/  # Test data generation
 │       └── main.go
-├── grafana/                   # Grafana dashboard and configuration
-│   ├── dashboard.json         # Cost metrics dashboard
+├── grafana/                   # Grafana Helm deployment
 │   ├── grafana-values.yml     # Helm values for Grafana
 │   ├── install-grafana.sh     # Grafana installation script
 │   └── README.md
+├── observability/             # Long-term metrics storage stack
+│   ├── dashboard.json         # Grafana dashboard for cost metrics
+│   ├── install.sh             # Installation script
+│   ├── install-seaweedfs.sh   # SeaweedFS-specific installation
+│   ├── README.md              # Observability stack documentation
+│   ├── RESOURCES.md           # Resource requirements
+│   ├── RESOURCES-SEAWEEDFS.md # SeaweedFS resource details
+│   └── manifests/
+│       ├── base/              # Base resources (namespace, storage)
+│       │   ├── namespace.yml
+│       │   ├── serviceaccount.yml
+│       │   ├── storage.yml
+│       │   └── storage-seaweedfs.yml
+│       ├── prometheus/        # Prometheus with federation
+│       │   ├── configmap.yml
+│       │   ├── service.yml
+│       │   └── statefulset.yml
+│       ├── thanos/            # Thanos components
+│       │   ├── compactor-statefulset.yml
+│       │   ├── query-deployment.yml
+│       │   └── store-statefulset.yml
+│       ├── seaweedfs/         # SeaweedFS object storage
+│       │   └── deployment.yml
+│       └── grafana/           # Grafana for visualization
+│           ├── configmap.yml
+│           └── deployment.yml
 ├── deploy/                    # Kubernetes deployment manifests
 │   ├── namespace.yml          # CMA namespace
 │   ├── deployment.yml         # CMA application deployment

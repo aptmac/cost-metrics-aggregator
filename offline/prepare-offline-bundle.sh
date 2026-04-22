@@ -179,11 +179,11 @@ echo ""
 # Copy Grafana dashboard
 echo -e "${YELLOW}Copying Grafana dashboard...${NC}"
 mkdir -p "${BUNDLE_DIR}/grafana"
-if [ -f "../grafana/dashboard.json" ]; then
-    cp ../grafana/dashboard.json "${BUNDLE_DIR}/grafana/"
+if [ -f "../observability/dashboard.json" ]; then
+    cp ../observability/dashboard.json "${BUNDLE_DIR}/grafana/"
     echo -e "${GREEN}✓ Grafana dashboard copied${NC}"
 else
-    echo -e "${YELLOW}Warning: Grafana dashboard not found at ../grafana/dashboard.json${NC}"
+    echo -e "${YELLOW}Warning: Grafana dashboard not found at ../observability/dashboard.json${NC}"
 fi
 echo ""
 
