@@ -46,8 +46,8 @@ echo -e "${YELLOW}Creating database secret...${NC}"
 if [ -f "../manifests/cost-metrics-db-secret.yml" ]; then
     oc apply -f ../manifests/cost-metrics-db-secret.yml -n ${AGGREGATOR_NAMESPACE}
     echo -e "${GREEN}✓ Database secret created${NC}"
-elif [ -f "../../deploy/cost-metrics-db-secret.yml" ]; then
-    oc apply -f ../../deploy/cost-metrics-db-secret.yml -n ${AGGREGATOR_NAMESPACE}
+elif [ -f "../../deploy/postgres/cost-metrics-db-secret.yml" ]; then
+    oc apply -f ../../deploy/postgres/cost-metrics-db-secret.yml -n ${AGGREGATOR_NAMESPACE}
     echo -e "${GREEN}✓ Database secret created${NC}"
 elif [ -f "cost-metrics-db-secret.yml" ]; then
     oc apply -f cost-metrics-db-secret.yml -n ${AGGREGATOR_NAMESPACE}
@@ -170,12 +170,12 @@ if [ -f "../manifests/operator-serviceaccount.yml" ]; then
     oc apply -f ../manifests/operator-clusterrolebinding.yml
     oc apply -f ../manifests/operator-prometheus-rolebinding.yml
     oc apply -f ../manifests/operator-crd.yml
-elif [ -f "../../deploy/operator-serviceaccount.yml" ]; then
-    oc apply -f ../../deploy/operator-serviceaccount.yml
-    oc apply -f ../../deploy/operator-clusterrole.yml
-    oc apply -f ../../deploy/operator-clusterrolebinding.yml
-    oc apply -f ../../deploy/operator-prometheus-rolebinding.yml
-    oc apply -f ../../deploy/operator-crd.yml
+elif [ -f "../../deploy/operator/operator-serviceaccount.yml" ]; then
+    oc apply -f ../../deploy/operator/operator-serviceaccount.yml
+    oc apply -f ../../deploy/operator/operator-clusterrole.yml
+    oc apply -f ../../deploy/operator/operator-clusterrolebinding.yml
+    oc apply -f ../../deploy/operator/operator-prometheus-rolebinding.yml
+    oc apply -f ../../deploy/operator/operator-crd.yml
 fi
 
 echo -e "${YELLOW}Creating image pull secret...${NC}"
@@ -222,8 +222,8 @@ echo -e "${YELLOW}Applying CostManagementMetricsConfig...${NC}"
 # Determine the correct path to the config file
 if [ -f "../manifests/CostManagementMetricsConfig.yml" ]; then
     CONFIG_FILE="../manifests/CostManagementMetricsConfig.yml"
-elif [ -f "../../deploy/CostManagementMetricsConfig.yml" ]; then
-    CONFIG_FILE="../../deploy/CostManagementMetricsConfig.yml"
+elif [ -f "../../deploy/operator/CostManagementMetricsConfig.yml" ]; then
+    CONFIG_FILE="../../deploy/operator/CostManagementMetricsConfig.yml"
 elif [ -f "CostManagementMetricsConfig.yml" ]; then
     CONFIG_FILE="CostManagementMetricsConfig.yml"
 else

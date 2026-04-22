@@ -1,11 +1,18 @@
 # Offline Installation
 
-Log into Red Hat Registry:
-```
+1. Log into Red Hat Registry:
+```bash
 podman login registry.redhat.io
 ```
 
-Setup internal registry:
+2. Fetch and bundle images required to run the application:
+```bash
+bash prepare-offline-bundle.sh
+```
+
+<b>At this point you may proceed offline.</b>
+
+3. Setup internal registry:
 ```bash
 export INTERNAL_REGISTRY=$(oc get route default-route -n openshift-image-registry -o jsonpath='{.spec.host}')
 export INTERNAL_REGISTRY_NAMESPACE="cost-metrics"
@@ -17,7 +24,15 @@ bash: podman login ${INTERNAL_REGISTRY} -u ${INTERNAL_REGISTRY_USER} -p ${INTERN
 fish: podman login {$INTERNAL_REGISTRY} -u {$INTERNAL_REGISTRY_USER} -p {$INTERNAL_REGISTRY_PASSWORD} --tls-verify=false
 ```
 
-Add labels to your Deployments and Pods:
+4. Load the images into the internal registry, and install
+```bash
+cd offline-bundle/scripts
+bash load-images-offline.sh
+bash install-offline.sh
+bash install-grafana.sh # optional
+```
+
+5. Add labels to your Deployments and Pods (rht.comp):
 ```bash
 # Pod (will not persist a re-spin):
 oc label pod <pod-name> rht.comp=<value>
@@ -26,9 +41,9 @@ oc label pod <pod-name> rht.comp=<value>
 oc label deployment <deployment-name> rht.comp=<value>
 ```
 
-Using CMA & Grafana:
+6. Access CMA & Grafana to view metrics
 ```bash
-# CMA
+# Cost Metrics Aggregator
 kubectl port-forward -n cost-metrics svc/cost-metrics-aggregator 8080:80
 curl "http://localhost:8080/api/metrics/v1/pods?start_date=2026-03-02&end_date=2026-04-02" | jq
 

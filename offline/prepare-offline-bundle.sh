@@ -136,20 +136,22 @@ echo ""
 echo -e "${YELLOW}Copying deployment manifests...${NC}"
 # Copy offline-specific manifests (with registry placeholders)
 cp ../deploy/offline/*.yml "${MANIFESTS_DIR}/" 2>/dev/null || true
-# Copy shared configs (no registry references)
-cp ../deploy/cost-metrics-db-secret.yml "${MANIFESTS_DIR}/"
-cp ../deploy/CostManagementMetricsConfig.yml "${MANIFESTS_DIR}/"
-# Copy operator manifests (shared RBAC, CRD, etc.)
-cp ../deploy/operator-serviceaccount.yml "${MANIFESTS_DIR}/"
-cp ../deploy/operator-clusterrole.yml "${MANIFESTS_DIR}/"
-cp ../deploy/operator-clusterrolebinding.yml "${MANIFESTS_DIR}/"
-cp ../deploy/operator-prometheus-rolebinding.yml "${MANIFESTS_DIR}/"
-cp ../deploy/operator-crd.yml "${MANIFESTS_DIR}/"
+# Copy postgres configs
+cp ../deploy/postgres/cost-metrics-db-secret.yml "${MANIFESTS_DIR}/"
+cp ../deploy/postgres/postgres-ssl-config.yml "${MANIFESTS_DIR}/"
+cp ../deploy/postgres/cronjob-*.yml "${MANIFESTS_DIR}/" 2>/dev/null || true
+# Copy operator manifests (RBAC, CRD, config)
+cp ../deploy/operator/operator-serviceaccount.yml "${MANIFESTS_DIR}/"
+cp ../deploy/operator/operator-clusterrole.yml "${MANIFESTS_DIR}/"
+cp ../deploy/operator/operator-clusterrolebinding.yml "${MANIFESTS_DIR}/"
+cp ../deploy/operator/operator-prometheus-rolebinding.yml "${MANIFESTS_DIR}/"
+cp ../deploy/operator/operator-crd.yml "${MANIFESTS_DIR}/"
+cp ../deploy/operator/CostManagementMetricsConfig.yml "${MANIFESTS_DIR}/"
 # Copy shared manifests from main deploy directory
-for file in namespace.yml service.yml route.yml postgres-ssl-config.yml cronjob-*.yml; do
+for file in namespace.yml service.yml route.yml; do
     [ -f "../deploy/$file" ] && cp "../deploy/$file" "${MANIFESTS_DIR}/"
 done
-echo -e "${GREEN}✓ Manifests copied (offline + shared configs + operator)${NC}"
+echo -e "${GREEN}✓ Manifests copied (offline + postgres + operator + shared)${NC}"
 echo ""
 
 # Copy SSL certificate generation script

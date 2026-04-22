@@ -36,7 +36,7 @@ echo -e "${YELLOW}Creating namespace...${NC}"
 oc create namespace ${AGGREGATOR_NAMESPACE} 2>/dev/null || echo "Namespace already exists"
 
 echo -e "${YELLOW}Creating database secret...${NC}"
-oc apply -f deploy/cost-metrics-db-secret.yml -n ${AGGREGATOR_NAMESPACE}
+oc apply -f deploy/postgres/cost-metrics-db-secret.yml -n ${AGGREGATOR_NAMESPACE}
 echo -e "${GREEN}✓ Database secret created${NC}"
 
 echo -e "${YELLOW}Generating SSL certificates for PostgreSQL...${NC}"
@@ -48,8 +48,8 @@ else
 fi
 
 echo -e "${YELLOW}Applying manifests...${NC}"
-oc apply -f deploy/postgres-ssl-config.yml -n ${AGGREGATOR_NAMESPACE} 2>/dev/null || true
-oc apply -f deploy/postgres-deployment.yml -n ${AGGREGATOR_NAMESPACE}
+oc apply -f deploy/postgres/postgres-ssl-config.yml -n ${AGGREGATOR_NAMESPACE} 2>/dev/null || true
+oc apply -f deploy/postgres/postgres-deployment.yml -n ${AGGREGATOR_NAMESPACE}
 oc apply -f deploy/deployment.yml -n ${AGGREGATOR_NAMESPACE}
 oc apply -f deploy/service.yml -n ${AGGREGATOR_NAMESPACE}
 oc apply -f deploy/route.yml -n ${AGGREGATOR_NAMESPACE}
@@ -85,12 +85,12 @@ echo -e "${YELLOW}Creating namespace...${NC}"
 oc create namespace ${OPERATOR_NAMESPACE} 2>/dev/null || echo "Namespace already exists"
 
 echo -e "${YELLOW}Applying operator manifests...${NC}"
-oc apply -f deploy/operator-serviceaccount.yml
-oc apply -f deploy/operator-clusterrole.yml
-oc apply -f deploy/operator-clusterrolebinding.yml
-oc apply -f deploy/operator-prometheus-rolebinding.yml
-oc apply -f deploy/operator-crd.yml
-oc apply -f deploy/operator-deployment.yml
+oc apply -f deploy/operator/operator-serviceaccount.yml
+oc apply -f deploy/operator/operator-clusterrole.yml
+oc apply -f deploy/operator/operator-clusterrolebinding.yml
+oc apply -f deploy/operator/operator-prometheus-rolebinding.yml
+oc apply -f deploy/operator/operator-crd.yml
+oc apply -f deploy/operator/operator-deployment.yml
 
 echo -e "${GREEN}✓ Operator installed${NC}"
 echo ""
@@ -116,7 +116,7 @@ echo -e "${YELLOW}Waiting for operator to be ready...${NC}"
 sleep 10
 
 echo -e "${YELLOW}Applying CostManagementMetricsConfig...${NC}"
-oc apply -f deploy/CostManagementMetricsConfig.yml -n ${OPERATOR_NAMESPACE}
+oc apply -f deploy/operator/CostManagementMetricsConfig.yml -n ${OPERATOR_NAMESPACE}
 echo -e "${GREEN}✓ Configuration applied${NC}"
 echo ""
 
