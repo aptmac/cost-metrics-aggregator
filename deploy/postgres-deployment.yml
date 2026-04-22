@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: postgres
-        image: 'default-route-openshift-image-registry.apps-crc.testing/cost-metrics/postgresql-15:latest'
+        image: 'default-route-openshift-image-registry.apps-crc.testing/cost-metrics/postgresql-16:latest'
         env:
         - name: POSTGRESQL_USER
           value: costmetrics

@@ -34,7 +34,7 @@ export REGISTRY_AUTH_FILE=${XDG_RUNTIME_DIR}/containers/auth.json
 # Image mappings
 declare -A IMAGE_MAP=(
     ["cost-metrics-aggregator.tar"]="${INTERNAL_REGISTRY}/${INTERNAL_REGISTRY_NAMESPACE}/cost-metrics-aggregator:latest"
-    ["postgresql-15.tar"]="${INTERNAL_REGISTRY}/${INTERNAL_REGISTRY_NAMESPACE}/postgresql-15:latest"
+    ["postgresql-16.tar"]="${INTERNAL_REGISTRY}/${INTERNAL_REGISTRY_NAMESPACE}/postgresql-16:latest"
     ["ubi9-go-toolset.tar"]="${INTERNAL_REGISTRY}/${INTERNAL_REGISTRY_NAMESPACE}/ubi9-go-toolset:1.21"
     ["ubi9-minimal.tar"]="${INTERNAL_REGISTRY}/${INTERNAL_REGISTRY_NAMESPACE}/ubi9-minimal:latest"
     ["grafana.tar"]="${INTERNAL_REGISTRY}/${INTERNAL_REGISTRY_NAMESPACE}/grafana:11.4.0"

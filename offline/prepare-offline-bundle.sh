@@ -22,7 +22,7 @@ MANIFESTS_DIR="${BUNDLE_DIR}/manifests"
 # Container images to mirror (core components only)
 declare -A IMAGES=(
     ["cost-metrics-aggregator"]="quay.io/almacdon/cost-metrics-aggregator:latest"
-    ["postgresql-15"]="registry.redhat.io/rhel9/postgresql-15:latest"
+    ["postgresql-16"]="registry.redhat.io/rhel9/postgresql-16:latest"
     ["ubi9-go-toolset"]="registry.access.redhat.com/ubi9/go-toolset:1.21"
     ["ubi9-minimal"]="registry.access.redhat.com/ubi9/ubi-minimal:latest"
     ["grafana"]="docker.io/grafana/grafana:11.4.0"

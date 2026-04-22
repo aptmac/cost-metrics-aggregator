@@ -84,7 +84,7 @@ cd "${MANIFESTS_DIR}"
 # Update image references to use internal registry
 for file in postgres-deployment.yml deployment.yml; do
     if [ -f "$file" ]; then
-        sed -i.bak "s|registry.redhat.io/rhel9/postgresql-15:latest|${INTERNAL_REGISTRY}/${INTERNAL_REGISTRY_NAMESPACE}/postgresql-15:latest|g" "$file"
+        sed -i.bak "s|registry.redhat.io/rhel9/postgresql-16:latest|${INTERNAL_REGISTRY}/${INTERNAL_REGISTRY_NAMESPACE}/postgresql-16:latest|g" "$file"
         sed -i.bak "s|quay.io/almacdon/cost-metrics-aggregator:latest|${INTERNAL_REGISTRY}/${INTERNAL_REGISTRY_NAMESPACE}/cost-metrics-aggregator:latest|g" "$file"
         oc apply -f "$file" -n ${AGGREGATOR_NAMESPACE}
     fi
