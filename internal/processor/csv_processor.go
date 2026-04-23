@@ -132,8 +132,14 @@ func ProcessCSV(ctx context.Context, repo *db.Repository, reader *csv.Reader, cl
 
 		podUsage, err := strconv.ParseFloat(podUsageStr, 64)
 		if err != nil {
-			log.Printf("Skipping record %d: invalid pod_usage_cpu_core_seconds %s: %v", i+1, podUsageStr, err)
-			continue
+			// Allow empty pod_usage_cpu_core_seconds, default to 0.0
+			if podUsageStr == "" {
+				log.Printf("Record %d: empty pod_usage_cpu_core_seconds - setting to 0.0", i+1)
+				podUsage = 0.0
+			} else {
+				log.Printf("Skipping record %d: invalid pod_usage_cpu_core_seconds %s: %v", i+1, podUsageStr, err)
+				continue
+			}
 		}
 
 		podRequest, err := strconv.ParseFloat(podRequestStr, 64)
